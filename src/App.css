@@ -1,0 +1,129 @@
+body {
+  margin: 0px;
+  font-family: "EB Garamond", "Georgia", "Cambria", sans-serif;
+  font-size: 2em;
+  background-color: #222222;
+  height: 100vh;
+  transition: 10s;
+  transition-property: background-color;
+  background-image: url(/250-90-5-monochrome.png);
+  background-repeat: repeat;
+}
+
+#root {
+  height: 100%;
+}
+
+.Card-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0px;
+  height: 100%;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.Card {
+  min-height: 200px;
+  max-height: 600px;
+  background-color: rgba(0,0,0,0.75);
+  color: #ddd;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0px;
+  box-shadow: 0px 0px 110px 80px rgba(0,0,0,0.75);
+  border-radius: 40px;
+  /*border: 20px solid rgba(0,0,0,0);*/
+  padding-left: 0px; 
+  opacity: 1;
+  z-index: 2;
+  animation-duration: 5s;
+  animation-name: slide-fade;
+}
+
+.Card-line {
+  transition: 1s;
+  animation-duration: 1s;
+  animation-name: slide-fade;
+}
+
+.Card-line:first-letter {
+  text-transform: capitalize;
+}
+
+@keyframes slide-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.Card-fade-out {
+  animation-duration: 1.5s;
+  animation-name: slide-fade-out;
+  opacity: 0;
+}
+
+@keyframes slide-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.Card div {
+  margin-top: 30px;
+}
+
+.Card-indent {
+  margin-left: 2em;
+}
+
+.Card-noindent {
+  margin-right: 2em;
+}
+
+div.Card-theme {
+  /*font-weight: 700;*/
+  margin-top: 0px;
+  color: white;
+  text-shadow:
+    0px 0px 6px white;
+  transition: 1s;
+}
+
+
+a {
+  color: white;
+}
+
+a:hover {
+  color: #444;
+  background-color: #fff;
+}
+
+.fade-completely-enter {
+  opacity: 0.01;
+}
+
+.fade-completely-enter.example-enter-active {
+  opacity: 1;
+  transition: opacity 500ms ease-in;
+}
+
+.fade-completely-leave {
+  opacity: 1;
+}
+
+.fade-completely-leave.example-leave-active {
+  opacity: 0.01;
+  transition: opacity 500ms ease-in;
+}
