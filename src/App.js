@@ -1,7 +1,8 @@
 // TODO:
 //  * formatting TODOs below
-//  * filtering so that nodes without many distinct children won't appear
-//  *   OR: automatic history stack popping to achieve this
+//  * XXXXXXXX filtering so that nodes without many distinct children won't appear
+//  *       OR: automatic history stack popping to achieve this
+//  * detecct when we have popped to parent multiple times in a row and pop to parents parent
 //  * opportunities to change identity, better tests of identity
 //  * XXXXXXXX changing color backgrounds
 //  * background music
@@ -16,9 +17,9 @@ class CardText extends Component {
     let linetext = []
     for (let i = 0; i < this.props.text.length; i++) {
       if (this.props.text[i].type === "plain") {
-        linetext.push(<span className="CardText-normal" key={i}>{this.props.text[i].value}</span>);
+        linetext.push(<span className="CardText-normal" key={this.props.keyValue + i}>{this.props.text[i].value}</span>);
       } else if (this.props.text[i].type === "link") {
-        linetext.push(<a href="#" onClick={this.props.text[i].callback} key={i}>{this.props.text[i].value}</a>);
+        linetext.push(<a href={"#" + this.props.keyValue} onClick={this.props.text[i].callback} key={this.props.keyValue + i}>{this.props.text[i].value}</a>);
       }
     }
 
@@ -40,7 +41,7 @@ class Card extends Component {
             lineClass = "Card-line Card-noindent";
           }
 
-          return <CardText key={i.key['@id']} text={i.text} lineClass={lineClass}/>;
+          return <CardText key={i.edge} keyValue={i.edge} text={i.text} lineClass={lineClass}/>;
 
         })}
       </div>
@@ -59,52 +60,55 @@ class App extends Component {
         trueHistory: [],
         fadingOut: false,
         intro: true,
-        items: [{type: "theme", key: {'@id': "intro-text"}, text: [{type: "plain", value: "You are a person."}]},
-          {type: "indent", key: {'@id': "intro-text-1"}, text: [{type: "plain", value: "That's what you're told."}]},
-          {type: "noindent", key: {'@id': "intro-text-2"}, text: [{type: "plain", value: "But you don't know what to do."}]},
-          {type: "indent", key: {'@id': "intro-text-3"}, text: [{type: "plain", value: "You need to "}, {type: "link", value:"practice", callback: this.beginGame.bind(this)}, {type: "plain", value:"."}]}]
+        items: [{type: "theme", edge: "intro-text", text: [{type: "plain", value: "You are a person."}]},
+          {type: "indent", edge: "intro-text-1", text: [{type: "plain", value: "That's what you're told."}]},
+          {type: "noindent", edge: "intro-text-2", text: [{type: "plain", value: "But you don't know what to do."}]},
+          {type: "indent", edge:"begin", text: [{type: "plain", value: "You need to "}, {type: "link", value:"practice", callback: this.beginGame.bind(this)}, {type: "plain", value:"."}]}]
       };
 
-      this.history = [this.state.identity['@id']];
+      this.history = [];
   }
 
-  fetchNextCard(term, previousEdge) {
-    console.log('fetching card');
-    console.log(term);
-
+  fetchNextCard(node, lastEdge) {
     var randomColor = "#000000".replace(/00/g,() => (((~~(Math.random()*3)).toString(16)) + ((~~(Math.random()*16)).toString(16))));
-    console.log(randomColor);
     document.body.style.backgroundColor = randomColor;
 
 
-    fetch('http://api.conceptnet.io/' + term + '?limit=2000&offset=0') 
+    fetch('http://api.conceptnet.io/' + node + '?limit=2000&offset=0') 
       .then(result => result.json())
       .then((resultJson) => {
-        console.log('results to json heres what i got');
         let allEdges = _.shuffle(resultJson.edges);
 
-        previousEdge.type = "theme";
-        let edges = [previousEdge];
+        lastEdge.type = "theme";
+        let edges = [lastEdge];
         while ((edges.length < 4) && (allEdges.length > 0)) {
           let e = allEdges.pop();
 
-          if (this.filterResponse(e)) {
-            edges.push(this.formatEdge(e, edges.length));
+          if (this.filterResponse(e, lastEdge.edge)) {
+            edges.push(this.formatEdge(e, edges.length, node));
           }
         }
-        console.log('found these edges');
-        console.log(edges);
 
-        this.setState({items: edges});
+        if (edges.length > 2) {
+          this.history.push({edge: lastEdge.edge, node: node});
+          this.setState({items: edges});
+        } else {
+          let parent = this.history.pop();
+          this.fetchNextCard(parent.node, lastEdge);
+        }
+
       });
   }
 
-  grammar(relation) {
+  grammar(relation, startTerm, endTerm) {
+    let r = Math.floor(Math.random() * 4);
+    // pretty much the one english conjugation
+    let conj = (startTerm.second || !startTerm.singular);
+
     switch (relation) {
       case '/r/Desires':
-        return {third: ' wants ', second: ' want '};
+        return ' want' + (conj ? " " : "s ") + (endTerm.verb ? "to " : "");
       case '/r/CapableOf':
-        var r = Math.floor(Math.random() * 4);
         switch (r) {
           case 0:
             return ' could ';
@@ -116,28 +120,63 @@ class App extends Component {
             return ' could ';
         }
       case '/r/NotDesires':
-        return {third: " doesn't want ", second: " don't want "};
+        return (conj ? " don't" : " doesn't") + " want " + (endTerm.verb ? "to " : "");
       case '/r/CreatedBy':
         return ' was created by ';
       case '/r/AtLocation':
-        return " could go to ";
+        return (startTerm.second ? " could go to " : " could be in ");
       case '/r/HasA':
-        return  " has ";
+        return (conj ? " have " : " has ");
       case '/r/HasProperty':
-        return " are " ;
+        return (conj ? " are " : " is ");
       case '/r/ReceivesAction':
         return " can be ";
       case '/r/HasSubevent':
-        return ["One of the things you do when you ", " is ", "."];
+        return ["When you ", " you ", "."];
       case '/r/HasPrerequisite':
-        return ["If you want to ", ", then you should ", "."];
+        return ["If you want to ", ", then you should " + (endTerm.verb ? "" : "have "), "."];
       case '/r/UsedFor':
-        return ["You remember that ", " are used to ", "."];
+        return ["You remember that ", startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ") + (endTerm.verb ? "" : "have "), "."];
       case '/r/HasFirstSubevent':
         return ['The first thing you do when you ', ' is ', '.'];
+      case '/r/SymbolOf':
+        return (startTerm.singular ? " is a symbol of " : " are symbols of ");
+      case '/r/DefinedAs':
+        return ["You know that ", (startTerm.singular ? " is a " : " are "), "."];
+      case '/r/Causes':
+        switch (r) {
+          case 0:
+            return ' can cause ' + (endTerm.verb ? "you to " : "");
+          case 1:
+            return ['Could ', ' have caused ' + (endTerm.verb ? "you to " : ""), '?'];
+          case 2:
+            return ' might have caused ' + (endTerm.verb ? "you to " : "");
+          default:
+            return ' could cause ' + (endTerm.verb ? "you to " : "");
+        }
+      case '/r/MotivatedBy':
+      case '/r/MotivatedByGoal':
+        return ["You want to ", " because ", "."];
+      case '/r/DistinctFrom':
+        return (conj ? " are not " : " is not ");
+      case '/r/MadeOf':
+        return (conj ? " are made of " : " is made of ");
+      case '/r/HasLastSubevent':
+        return ["The last thing you do when you ", " is ", "."];
+      case '/r/NotCapableOf':
+        return " can not ";
+      case '/r/CausesDesire':
+        return (startTerm.singular ? " makes" : " make") + " you want " + (endTerm.verb ? "to " : "");
       default:
         return " " + relation + " ";
     }
+  }
+
+  // converts all verbs in gerund form to verbs in infinitive form.
+  // does not affect non-verb words.
+  // TODO: make this do something
+  gerundToInfinitive(text) {
+    return text;
   }
 
   // this is an important function and needs a lot of work
@@ -158,47 +197,71 @@ class App extends Component {
   // TODO:
   //  *     XXXXXXXXX Lookup table for grammars
   //  *     XXXXXXXXX Wrapper for lookup table in this function
-  //  * Detect verb and add "to" if it is a verb (this should be gernerators)
-  //      responsibility I think.
-  //  * Modify perspective shift to use the current identity
-  //  * Modify term labels to use perspective information
-  formatEdge(edge, index) {
-    var firstIsNew = false;
-    if (this.firstIsNew(edge)) {
-      firstIsNew = true;
+  //  *     XXXXXXXXX Detect verb and add "to" if it is a verb (this should be generators
+  //            responsibility I think.)
+  //  *     XXXXXXXXX Modify perspective shift to use the current identity
+  //  *     XXXXXXXXX Modify term labels to use perspective information
+  //  * Convert gerunds to infinitives.
+  formatEdge(edge, index, previousEdge) {
+    var myWords={
+      'open':'Verb'
     }
-    var term = firstIsNew ? edge.start : edge.end;
+
+    var term = (edge.end['@id'] === previousEdge) ? edge.start : edge.end;
 
     // //////// ///// //// ////
     // GENERATE START TERM TEXT
 
     var startTerm = edge.start.label;
+    var startPOS = {singular: true};
 
-    // default to a third person perspective
-    var perspective = "third";
-
-    // special case of start term is "a person"
-    //    this special case should be modified to make it work based on
-    //    current identity state
-    if (startTerm === "a person" || startTerm === "A person" || startTerm === "people" || startTerm === "person") {
+    // special case if start term matches our identity
+    if (nlp(startTerm).nouns().toSingular().out('root') === nlp(this.state.identity.label).nouns().toSingular().out('root')) {
       startTerm = "you";
-      perspective = "second";
+      startPOS.second = true;
+    }
+
+    startTerm = this.gerundToInfinitive(startTerm);
+    var startTags = nlp(startTerm, myWords).terms().data();
+
+    if (startTags[0].bestTag === "Verb") {
+      startPOS.verb = true;
+    } else {
+      for (let i = 0; i < startTags.length; i++) {
+        if (startTags[i].bestTag === "Plural") {
+          startPOS.singular = false;
+        }
+      }
     }
 
     // //////// /// //// ////
     // GENERATE END TERM TEXT
 
-    if (perspective === "second") {
+    if (startPOS.second) {
       var endTerm = this.pronounsToSecondPerson(edge.end.label);
     } else {
       var endTerm = edge.end.label;
+    }
+
+    endTerm = this.gerundToInfinitive(endTerm);
+    var endTags = nlp(endTerm, myWords).terms().data();
+
+    var endPOS = {singular: true};
+    if (endTags[0].bestTag === "Verb") {
+      endPOS.verb = true;
+    } else {
+      for (let i = 0; i < endTags.length; i++) {
+        if (endTags[i].bestTag === "Plural") {
+          endPOS.singular = false;
+        }
+      }
     }
 
     // /// /////// //////
     // GET (A,B,C) VALUES
 
     // get the (a,b,c) values from the grammar table
-    var grammar = this.grammar(edge.rel['@id']);
+    var grammar = this.grammar(edge.rel['@id'], startPOS, endPOS);
 
     // expand them into full (a, b, c) values. stored in a compressed form in
     // the table in order to make it easier to edit.
@@ -210,36 +273,24 @@ class App extends Component {
       a = "";
       b = grammar;
       c = ".";
-    } else if (typeof grammar[perspective] === "undefined") {
+    } else {
       a = grammar[0];
       b = grammar[1];
       c = grammar[2];
-    } else {
-      if (typeof grammar[perspective] === "string") {
-        a = "";
-        b = grammar[perspective];
-        c = ".";
-      } else {
-        a = grammar[perspective][0];
-        b = grammar[perspective][1];
-        c = grammar[perspective][2];
-      }
     }
-
-    console.log(term);
 
     // /// // /// ////////
     // PUT IT ALL TOGETHER
 
     var text = [];
     text[0] = {type: "plain", value: a};
-    if (firstIsNew) {
+    if ((edge.end['@id'] === previousEdge)) {
       text[1] = {type: "link", value: startTerm, callback: () => this.transition(term, index)};
     } else {
       text[1] = {type: "plain", value: startTerm};
     }
     text[2] = {type: "plain", value: b};
-    if (firstIsNew) {
+    if ((edge.end['@id'] === previousEdge)) {
       text[3] = {type: "plain", value: endTerm};
     } else {
       text[3] = {type: "link", value: endTerm, callback: () => this.transition(term, index)};
@@ -249,6 +300,11 @@ class App extends Component {
     // //// //////////
     // POST PROCESSING
 
+    // lower case everything
+    for (let i = 0; i < text.length; i++) {
+      text[i].value = text[i].value.toLowerCase();
+    }
+
     // capitalize first letter
     if (text[0].value === '') {
       text[1].value = text[1].value[0].toUpperCase() + text[1].value.slice(1);
@@ -256,9 +312,7 @@ class App extends Component {
       text[0].value = text[0].value[0].toUpperCase() + text[0].value.slice(1);
     }
 
-    console.log(text);
-
-    return {type: "indent", key: term, text: text};
+    return {type: "indent", key: term, text: text, edge: edge['@id']};
   }
 
   pronounsToSecondPerson(text) {
@@ -269,62 +323,25 @@ class App extends Component {
     text = text.replace(/\bthey\b/g, "you");
     text = text.replace(/\bhis\b/g, "your");
     text = text.replace(/\bher\b/g, "your");
+    text = text.replace(/\bthem\b/g, "you");
+    text = text.replace(/\bhim\b/g, "you");
+    text = text.replace(/\bhe\b/g, "you");
+    text = text.replace(/\bshe\b/g, "you");
     return text;
   }
 
-  findOther(term) {
-    if (term.end['@id'] === this.state.identity['@id']) {
-      return term.start;
-    } else {
-      return term.end;
-    }
-  }
-
-  firstIsNew(term) {
-    return (term.end['@id'] === this.state.identity['@id']);
-  }
-
-  findOtherWithTerm(term, notThis) {
-    if (term.end['@id'] === notThis) {
-      return term.start;
-    } else {
-      return term.end;
-    }
-  }
-
-  filterResponse(edge) {
+  filterResponse(edge, previousEdgeId) {
     let excluded_relations = ['/r/Synonym', '/r/ExternalURL', '/r/RelatedTo', '/r/HasContext',
                       '/r/FormOf', '/r/DerivedFrom', '/r/EtymologicallyRelatedTo', 
                       '/r/IsA', '/r/SimilarTo', '/r/Antonym', '/r/Synonym',
                      '/r/dbpedia/genre', '/r/TranslationOf', '/r/MannerOf', '/r/PartOf'];
 
-    let term = this.findOther(edge)['@id'];
-    // this.numberOfEdges(term);
-    
-    let historyIndex = this.history.indexOf(term);
-    if ((excluded_relations.indexOf(edge.rel['@id']) < 0) &&                     // not an excluded relation
-      (edge.surfaceText) &&                                                      // has surface text
-      ((historyIndex === -1) || (historyIndex < (this.history.length - 2)))) { // we haven't recently visited it
+    if ((excluded_relations.indexOf(edge.rel['@id']) < 0) &&    // not an excluded relation
+      (edge.surfaceText) && (previousEdgeId !== edge['@id'])){  // has surface text
         return true;
     }
 
     return false;
-  }
-
-  filterResponses(edges) {
-    edges = edges.filter(this.filterResponse.bind(this));
-
-    return edges;
-  }
-
-  numberOfEdges(term) {
-    let promise = fetch('http://api.conceptnet.io/' + term + '?limit=5&offset=0')
-      .then(result => result.json()).then(result => result.edges.length);
-    return promise;
-  }
-
-  cleanSurfaceText(edge) {
-    return edge.surfaceText.replace(/\[/g,"").replace(/\]/g,"");
   }
 
   makePlain(cardItem) {
@@ -350,17 +367,11 @@ class App extends Component {
     // okay, i need to make some kind of promise that is fulfilled after a window timeout so that 
     // these things happen simultaneously
 
-    this.fetchNextCard('/c/en/person', this.makePlain(this.state.items[0]));
+    this.fetchNextCard('/c/en/person', this.makePlain(this.state.items[0]), {node: '/c/en/person', lastEdge: 'start-game'});
   }
 
   transition(to, index) {
-    console.log("transition to: ")
-    console.log(to)
-    console.log(index);
-    console.log(this.state.items);
-
-    this.fetchNextCard(to['@id'], this.makePlain(this.state.items[index]));
-    this.setState({identity: to});
+    this.fetchNextCard(to['@id'], this.makePlain(this.state.items[index]), {node: to['@id'], lastEdge: this.state.items[index].edge });
   }
 
   render() {
