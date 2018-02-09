@@ -2,10 +2,11 @@
 //  * formatting TODOs below
 //  * XXXXXXXX filtering so that nodes without many distinct children won't appear
 //  *       OR: automatic history stack popping to achieve this
-//  * detecct when we have popped to parent multiple times in a row and pop to parents parent
+//  * detect when we have popped to parent multiple times in a row and pop to parents parent
 //  * opportunities to change identity, better tests of identity
 //  * XXXXXXXX changing color backgrounds
 //  * background music
+//  * smooth transitions of clicked item -> theme
 
 import React, { Component } from 'react';
 import _ from 'underscore';
@@ -67,9 +68,10 @@ class App extends Component {
       };
 
       this.history = [];
+      this.deadends = 0;
   }
 
-  fetchNextCard(node, lastEdge) {
+  fetchNextCard(node, lastEdge, firstTry) {
     var randomColor = "#000000".replace(/00/g,() => (((~~(Math.random()*3)).toString(16)) + ((~~(Math.random()*16)).toString(16))));
     document.body.style.backgroundColor = randomColor;
 
@@ -91,10 +93,19 @@ class App extends Component {
 
         if (edges.length > 2) {
           this.history.push({edge: lastEdge.edge, node: node});
+          if (firstTry) {
+            this.deadends = 0;
+          }
           this.setState({items: edges});
         } else {
+          this.deadends += 1;
+
           let parent = this.history.pop();
-          this.fetchNextCard(parent.node, lastEdge);
+          if (this.deadends >= 2 && this.history.length >= 1) {
+            parent = this.history.pop();
+          }
+
+          this.fetchNextCard(parent.node, lastEdge, false);
         }
 
       });
@@ -367,11 +378,11 @@ class App extends Component {
     // okay, i need to make some kind of promise that is fulfilled after a window timeout so that 
     // these things happen simultaneously
 
-    this.fetchNextCard('/c/en/person', this.makePlain(this.state.items[0]), {node: '/c/en/person', lastEdge: 'start-game'});
+    this.fetchNextCard('/c/en/person', this.makePlain(this.state.items[0]), true);
   }
 
   transition(to, index) {
-    this.fetchNextCard(to['@id'], this.makePlain(this.state.items[index]), {node: to['@id'], lastEdge: this.state.items[index].edge });
+    this.fetchNextCard(to['@id'], this.makePlain(this.state.items[index]), true);
   }
 
   render() {
