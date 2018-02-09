@@ -7,6 +7,7 @@
 //  * background music
 //  * smooth transitions of clicked item -> theme
 //  * improve animation when game is starting
+//  * enable deep linking by detecting URL
 
 import React, { Component } from 'react';
 import _ from 'underscore';

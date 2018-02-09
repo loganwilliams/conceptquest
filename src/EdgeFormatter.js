@@ -1,5 +1,3 @@
-import nlp from 'compromise';
-
 // TODO:
 //  *     XXXXXXXXX Lookup table for grammars
 //  *     XXXXXXXXX Wrapper for lookup table in this function
@@ -8,6 +6,8 @@ import nlp from 'compromise';
 //  *     XXXXXXXXX Modify perspective shift to use the current identity
 //  *     XXXXXXXXX Modify term labels to use perspective information
 //  * Convert gerunds to infinitives.
+
+import nlp from 'compromise';
 
 class EdgeFormatter {
   // Every sentence fits into the pattern 
