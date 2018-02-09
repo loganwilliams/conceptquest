@@ -10,7 +10,7 @@
 
 import React, { Component } from 'react';
 import _ from 'underscore';
-import './App.css';
+import './Conceptquest.css';
 import Card from './Card.js';
 import EdgeFormatter from './EdgeFormatter.js';
 
