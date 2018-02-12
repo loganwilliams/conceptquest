@@ -129,23 +129,22 @@ class App extends Component {
     // get the current position
 
     let edge = window.location.hash.slice(1, window.location.hash.length);
-    let location = edge.slice(4, window.location.hash.length-2).split(',')[1];
-    this.setState({
-      intro: false,
-      fadingOut: false
-    });
 
-    fetch('http://api.conceptnet.io/' + edge) 
-      .then(result => result.json())
-      .then((resultJson) => {
-        console.log(resultJson);
-        let previousEdge = this.makePlain(EdgeFormatter.formatEdge(resultJson, 0, "", this.transition.bind(this), this.state.identity));
-        this.fetchNextCard(location, previousEdge, true);
+    if (edge.length > 1) {
+      let location = edge.slice(4, window.location.hash.length-2).split(',')[1];
+      this.setState({
+        intro: false,
+        fadingOut: false
       });
 
-    // this.fetchNextCard(location, edge, true);
-    // this.history.push({edge: edge, node: location});
-    // console.log(this.history);
+      fetch('http://api.conceptnet.io/' + edge) 
+        .then(result => result.json())
+        .then((resultJson) => {
+          console.log(resultJson);
+          let previousEdge = this.makePlain(EdgeFormatter.formatEdge(resultJson, 0, "", this.transition.bind(this), this.state.identity));
+          this.fetchNextCard(location, previousEdge, true);
+      });
+    }
   }
 
   render() {

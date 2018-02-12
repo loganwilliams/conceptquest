@@ -143,6 +143,16 @@ class EdgeFormatter {
     return {type: "indent", key: term, text: text, edge: edge['@id']};
   }
 
+  // conceptNetGrammar returns the surfaceText of an edge in the [a,b,c] format
+  // expected by formatEdge
+  static conceptNetGrammar(edge) {
+    let surfaceText = edge.surfaceText.split('[[')
+    let a = surfaceText[0];
+    let b = surfaceText[1].split(']]')[1];
+    let c = surfaceText[2].split(']]')[1];
+    return [a, b, c];
+  }
+
   static grammar(relation, startTerm, endTerm) {
     let r = Math.floor(Math.random() * 4);
     // pretty much the one english conjugation
