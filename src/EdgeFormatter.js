@@ -5,7 +5,7 @@
 //            responsibility I think.)
 //  *     XXXXXXXXX Modify perspective shift to use the current identity
 //  *     XXXXXXXXX Modify term labels to use perspective information
-//  * Convert gerunds to infinitives.
+//  *     XXXXXXXXX Convert gerunds to infinitives.
 
 import nlp from 'compromise';
 
@@ -25,7 +25,8 @@ class EdgeFormatter {
 
   static formatEdge(edge, index, previousEdge, callback, identity) {
     var myWords={
-      'open':'Verb'
+      'open':'Verb',
+      'nod':'Verb'
     }
 
     var term = (edge.end['@id'] === previousEdge) ? edge.start : edge.end;
@@ -39,6 +40,10 @@ class EdgeFormatter {
     // special case if start term matches our identity
     if (nlp(startTerm).nouns().toSingular().out('root') === nlp(identity.label).nouns().toSingular().out('root')) {
       startTerm = "you";
+      startPOS.second = true;
+    }
+
+    if (startTerm.slice(startTerm.length - 3, startTerm.length) === "you") {
       startPOS.second = true;
     }
 
@@ -107,15 +112,15 @@ class EdgeFormatter {
     var text = [];
     text[0] = {type: "plain", value: a};
     if ((edge.end['@id'] === previousEdge)) {
-      text[1] = {type: "link", value: startTerm, callback: () => callback(term, index)};
+      text[1] = {type: "link", value: startTerm, callback: () => callback(term, index), pos: startPOS};
     } else {
-      text[1] = {type: "plain", value: startTerm};
+      text[1] = {type: "plain", value: startTerm, pos: startPOS};
     }
     text[2] = {type: "plain", value: b};
     if ((edge.end['@id'] === previousEdge)) {
-      text[3] = {type: "plain", value: endTerm};
+      text[3] = {type: "plain", value: endTerm, pos: endPOS};
     } else {
-      text[3] = {type: "link", value: endTerm, callback: () => callback(term, index)};
+      text[3] = {type: "link", value: endTerm, callback: () => callback(term, index), pos: endPOS};
     }
     text[4] = {type: "plain", value: c};
 
@@ -134,6 +139,7 @@ class EdgeFormatter {
       text[0].value = text[0].value[0].toUpperCase() + text[0].value.slice(1);
     }
 
+    console.log(text);
     return {type: "indent", key: term, text: text, edge: edge['@id']};
   }
 
@@ -161,7 +167,14 @@ class EdgeFormatter {
       case '/r/CreatedBy':
         return ' was created by ';
       case '/r/AtLocation':
-        return (startTerm.second ? " could go to " : " could be in ");
+        switch (r) {
+          case 0:
+          case 1:
+            return (startTerm.second ? " could go to " : " could be in ");
+          case 2:
+          default:
+            return (startTerm.second ? " might be able to go to " : " might be in ");
+        }
       case '/r/HasA':
         return (conj ? " have " : " has ");
       case '/r/HasProperty':
@@ -169,11 +182,20 @@ class EdgeFormatter {
       case '/r/ReceivesAction':
         return " can be ";
       case '/r/HasSubevent':
-        return ["When you ", " you ", "."];
+        return ["Something that might happen when you ", " is ", "."];
+        // return ["When you ", (startTerm.second || !endTerm.verb) ? " " : " you ", "."];
       case '/r/HasPrerequisite':
         return ["If you want to ", ", then you should " + (endTerm.verb ? "" : "have "), "."];
       case '/r/UsedFor':
-        return ["You remember that ", startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ") + (endTerm.verb ? "" : "have "), "."];
+        switch (r) {
+          case 0:
+            return ["Is " + (startTerm.verb ? "" : "a "), startTerm.verb ? " a way to " : (startTerm.singular ? " used to " : " used to ") + (endTerm.verb ? "" : "have "), "."];
+          case 1:
+            return ["You remember that ", startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ") + (endTerm.verb ? "" : "have "), "."];
+          case 2:
+          default:
+            return ["You prefer to " + (startTerm.verb ? "" :  "use a "), " to ", "." ];
+        }
       case '/r/HasFirstSubevent':
         return ['The first thing you do when you ', ' is ', '.'];
       case '/r/SymbolOf':
@@ -193,13 +215,13 @@ class EdgeFormatter {
         }
       case '/r/MotivatedBy':
       case '/r/MotivatedByGoal':
-        return ["You want to ", " because ", "."];
+        return ["You want to ", " because " + (endTerm.verb ? "" : "you want "), "."];
       case '/r/DistinctFrom':
         return (conj ? " are not " : " is not ");
       case '/r/MadeOf':
         return (conj ? " are made of " : " is made of ");
       case '/r/HasLastSubevent':
-        return ["The last thing you do when you ", " is ", "."];
+        return ["The last thing you do when " + startTerm.second ? "" : "you ", " is ", "."];
       case '/r/NotCapableOf':
         return " can not ";
       case '/r/CausesDesire':
@@ -209,11 +231,18 @@ class EdgeFormatter {
     }
   }
 
-  // converts all verbs in gerund form to verbs in infinitive form.
+  // converts the first verb in gerund form to a verb in infinitive form.
   // does not affect non-verb words.
-  // TODO: make this do something
   static gerundToInfinitive(text) {
-    return text;
+
+    var s = nlp(text);
+
+    if (s.terms().data()[0].tags.includes("Gerund")) {
+      s.verbs().list[0] = s.verbs().toInfinitive().list[0];
+    }
+
+    // s.verbs = v.toInfinitive();
+    return s.out('text');
   }
 
   static pronounsToSecondPerson(text) {
