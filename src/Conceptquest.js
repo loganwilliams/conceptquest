@@ -7,7 +7,7 @@
 //  * background music
 //  * smooth transitions of clicked item -> theme
 //  * improve animation when game is starting
-//  * enable deep linking by detecting URL
+//  * XXXXXXXX enable deep linking by detecting URL
 
 import React, { Component } from 'react';
 import _ from 'underscore';
@@ -23,7 +23,6 @@ class App extends Component {
         identity: {
           '@id': '/c/en/person',
           'label': 'a person' },
-        trueHistory: [],
         fadingOut: false,
         intro: true,
         items: [{type: "theme", edge: "intro-text", text: [{type: "plain", value: "You are a person."}]},
@@ -124,6 +123,29 @@ class App extends Component {
 
   transition(to, index) {
     this.fetchNextCard(to['@id'], this.makePlain(this.state.items[index]), true);
+  }
+
+  componentWillMount() {
+    // get the current position
+
+    let edge = window.location.hash.slice(1, window.location.hash.length);
+    let location = edge.slice(4, window.location.hash.length-2).split(',')[1];
+    this.setState({
+      intro: false,
+      fadingOut: false
+    });
+
+    fetch('http://api.conceptnet.io/' + edge) 
+      .then(result => result.json())
+      .then((resultJson) => {
+        console.log(resultJson);
+        let previousEdge = this.makePlain(EdgeFormatter.formatEdge(resultJson, 0, "", this.transition.bind(this), this.state.identity));
+        this.fetchNextCard(location, previousEdge, true);
+      });
+
+    // this.fetchNextCard(location, edge, true);
+    // this.history.push({edge: edge, node: location});
+    // console.log(this.history);
   }
 
   render() {
