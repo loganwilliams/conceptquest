@@ -8,6 +8,7 @@
 //  * smooth transitions of clicked item -> theme
 //  * improve animation when game is starting
 //  * XXXXXXXX enable deep linking by detecting URL
+//  * text distortion/decay feature
 
 import React, { Component } from 'react';
 import _ from 'underscore';
@@ -15,7 +16,7 @@ import './Conceptquest.css';
 import Card from './Card.js';
 import EdgeFormatter from './EdgeFormatter.js';
 
-class App extends Component {
+class Conceptquest extends Component {
   constructor() {
       super();
       this.state = { 
@@ -95,16 +96,6 @@ class App extends Component {
     return false;
   }
 
-  makePlain(cardItem) {
-    let newText = "";
-    for (var i = 0; i < cardItem.text.length; i++) {
-      newText += cardItem.text[i].value;
-    }
-
-    cardItem.text = [{type: "plain", value: newText}];
-    return cardItem;
-  }
-
   beginGame() {
     this.setState({
       fadingOut: true
@@ -118,11 +109,11 @@ class App extends Component {
     // okay, i need to make some kind of promise that is fulfilled after a window timeout so that 
     // these things happen simultaneously
 
-    this.fetchNextCard('/c/en/person', this.makePlain(this.state.items[0]), true);
+    this.fetchNextCard('/c/en/person', EdgeFormatter.makePlain(this.state.items[0]), true);
   }
 
   transition(to, index) {
-    this.fetchNextCard(to['@id'], this.makePlain(this.state.items[index]), true);
+    this.fetchNextCard(to['@id'], EdgeFormatter.makePlain(this.state.items[index]), true);
   }
 
   componentWillMount() {
@@ -141,7 +132,7 @@ class App extends Component {
         .then(result => result.json())
         .then((resultJson) => {
           console.log(resultJson);
-          let previousEdge = this.makePlain(EdgeFormatter.formatEdge(resultJson, 0, "", this.transition.bind(this), this.state.identity));
+          let previousEdge = EdgeFormatter.makePlain(EdgeFormatter.formatEdge(resultJson, 0, "", this.transition.bind(this), this.state.identity));
           this.fetchNextCard(location, previousEdge, true);
       });
     }
@@ -172,4 +163,4 @@ class App extends Component {
   }
 }
 
-export default App;
+export default Conceptquest;

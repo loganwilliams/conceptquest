@@ -139,7 +139,6 @@ class EdgeFormatter {
       text[0].value = text[0].value[0].toUpperCase() + text[0].value.slice(1);
     }
 
-    console.log(text);
     return {type: "indent", key: term, text: text, edge: edge['@id']};
   }
 
@@ -193,13 +192,12 @@ class EdgeFormatter {
         return " can be ";
       case '/r/HasSubevent':
         return ["Something that might happen when you ", " is ", "."];
-        // return ["When you ", (startTerm.second || !endTerm.verb) ? " " : " you ", "."];
       case '/r/HasPrerequisite':
         return ["If you want to ", ", then you should " + (endTerm.verb ? "" : "have "), "."];
       case '/r/UsedFor':
         switch (r) {
           case 0:
-            return ["Is " + (startTerm.verb ? "" : "a "), startTerm.verb ? " a way to " : (startTerm.singular ? " used to " : " used to ") + (endTerm.verb ? "" : "have "), "."];
+            return ["Is " + (startTerm.verb ? "" : "a "), startTerm.verb ? " a way to " : (startTerm.singular ? " used to " : " used to ") + (endTerm.verb ? "" : "have "), "?"];
           case 1:
             return ["You remember that ", startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ") + (endTerm.verb ? "" : "have "), "."];
           case 2:
@@ -269,6 +267,17 @@ class EdgeFormatter {
     text = text.replace(/\bshe\b/g, "you");
     return text;
   }
+
+  static makePlain(cardItem) {
+    let newText = "";
+    for (var i = 0; i < cardItem.text.length; i++) {
+      newText += cardItem.text[i].value;
+    }
+
+    cardItem.text = [{type: "plain", value: newText}];
+    return cardItem;
+  }
+
 }
 
 export default EdgeFormatter;
