@@ -26,7 +26,9 @@ class EdgeFormatter {
   static formatEdge(edge, index, previousEdge, callback, identity) {
     var myWords={
       'open':'Verb',
-      'nod':'Verb'
+      'nod':'Verb',
+      'find': 'Verb',
+      'breathe': 'Verb'
     }
 
     var term = (edge.end['@id'] === previousEdge) ? edge.start : edge.end;
@@ -38,7 +40,11 @@ class EdgeFormatter {
     var startPOS = {singular: true};
 
     // special case if start term matches our identity
-    if (nlp(startTerm).nouns().toSingular().out('root') === nlp(identity.label).nouns().toSingular().out('root')) {
+    let singularStart = nlp(startTerm);
+    singularStart.nouns = singularStart.nouns().toSingular();
+    let singularIdentity = nlp(identity.label);
+    singularIdentity.nouns = singularIdentity.nouns().toSingular();
+    if (singularStart.out('root') === singularIdentity.out('root')) {
       startTerm = "you";
       startPOS.second = true;
     }
@@ -47,7 +53,12 @@ class EdgeFormatter {
       startPOS.second = true;
     }
 
-    startTerm = this.gerundToInfinitive(startTerm);
+    if (this.convertVerb(edge.rel['@id'])[0] === 'infinitive') {
+      startTerm = this.gerundToInfinitive(startTerm);
+    } else if (this.convertVerb(edge.rel['@id'])[0] === 'gerund') {
+      startTerm = this.toGerund(startTerm);
+    }
+
     var startTags = nlp(startTerm, myWords).terms().data();
 
     if (startTags[0].bestTag === "Verb") {
@@ -56,6 +67,10 @@ class EdgeFormatter {
       for (let i = 0; i < startTags.length; i++) {
         if (startTags[i].bestTag === "Plural") {
           startPOS.singular = false;
+        }
+
+        if (startTags[i].bestTag === "Verb") {
+          startPOS.hasVerb = true;
         }
       }
     }
@@ -70,23 +85,31 @@ class EdgeFormatter {
       endTerm = edge.end.label;
     }
 
-    endTerm = this.gerundToInfinitive(endTerm);
+    if (this.convertVerb(edge.rel['@id'])[1] === 'infinitive') {
+      endTerm = this.gerundToInfinitive(endTerm);
+    } else if (this.convertVerb(edge.rel['@id'])[1] === 'gerund') {
+      endTerm = this.toGerund(endTerm);
+    }
+
     var endTags = nlp(endTerm, myWords).terms().data();
 
     var endPOS = {singular: true};
-    if (endTags[0].bestTag === "Verb") {
+    if ((endTags[0].bestTag === "Verb")) {
       endPOS.verb = true;
     } else {
       for (let i = 0; i < endTags.length; i++) {
         if (endTags[i].bestTag === "Plural") {
           endPOS.singular = false;
         }
+
+        if (endTags[i].bestTag === "Verb") {
+          endPOS.hasVerb = true;
+        }
       }
     }
 
     // /// /////// //////
     // GET (A,B,C) VALUES
-
     // get the (a,b,c) values from the grammar table
     var grammar = this.grammar(edge.rel['@id'], startPOS, endPOS);
 
@@ -152,8 +175,18 @@ class EdgeFormatter {
     return [a, b, c];
   }
 
+  static convertVerb(relation) {
+    switch (relation) {
+      case '/r/HasSubevent':
+        return ['infinitive', false];
+      case '/r/Causes':
+        return [false, 'infinitive'];
+      default:
+        return [false, false];
+    }
+  }
+
   static grammar(relation, startTerm, endTerm) {
-    let r = Math.floor(Math.random() * 4);
     // pretty much the one english conjugation
     let conj = (startTerm.second || !startTerm.singular);
 
@@ -161,29 +194,13 @@ class EdgeFormatter {
       case '/r/Desires':
         return ' want' + (conj ? " " : "s ") + (endTerm.verb ? "to " : "");
       case '/r/CapableOf':
-        switch (r) {
-          case 0:
-            return ' could ';
-          case 1:
-            return ['Could ', ' ', '?'];
-          case 2:
-            return ' can ';
-          default:
-            return ' could ';
-        }
+        return ' could ';
       case '/r/NotDesires':
         return (conj ? " don't" : " doesn't") + " want " + (endTerm.verb ? "to " : "");
       case '/r/CreatedBy':
         return ' was created by ';
       case '/r/AtLocation':
-        switch (r) {
-          case 0:
-          case 1:
-            return (startTerm.second ? " could go to " : " could be in ");
-          case 2:
-          default:
-            return (startTerm.second ? " might be able to go to " : " might be in ");
-        }
+        return (startTerm.second ? " could go to " : " could be in ");
       case '/r/HasA':
         return (conj ? " have " : " has ");
       case '/r/HasProperty':
@@ -191,19 +208,11 @@ class EdgeFormatter {
       case '/r/ReceivesAction':
         return " can be ";
       case '/r/HasSubevent':
-        return ["Something that might happen when you ", " is ", "."];
+        return ["Something that might happen when you ", " is " + (endTerm.verb ? "that you " : ""), "."];
       case '/r/HasPrerequisite':
         return ["If you want to ", ", then you should " + (endTerm.verb ? "" : "have "), "."];
       case '/r/UsedFor':
-        switch (r) {
-          case 0:
-            return ["Is " + (startTerm.verb ? "" : "a "), startTerm.verb ? " a way to " : (startTerm.singular ? " used to " : " used to ") + (endTerm.verb ? "" : "have "), "?"];
-          case 1:
-            return ["You remember that ", startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ") + (endTerm.verb ? "" : "have "), "."];
-          case 2:
-          default:
-            return ["You prefer to " + (startTerm.verb ? "" :  "use a "), " to ", "." ];
-        }
+        return ["You remember that ", (startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ")) + (endTerm.verb ? "" : "have "), "."];
       case '/r/HasFirstSubevent':
         return ['The first thing you do when you ', ' is ', '.'];
       case '/r/SymbolOf':
@@ -211,25 +220,16 @@ class EdgeFormatter {
       case '/r/DefinedAs':
         return ["You know that ", (startTerm.singular ? " is a " : " are "), "."];
       case '/r/Causes':
-        switch (r) {
-          case 0:
-            return ' can cause ' + (endTerm.verb ? "you to " : "");
-          case 1:
-            return ['Could ', ' have caused ' + (endTerm.verb ? "you to " : ""), '?'];
-          case 2:
-            return ' might have caused ' + (endTerm.verb ? "you to " : "");
-          default:
-            return ' could cause ' + (endTerm.verb ? "you to " : "");
-        }
+        return ' can cause ' + (endTerm.verb ? "you to " : "");
       case '/r/MotivatedBy':
       case '/r/MotivatedByGoal':
-        return ["You want to ", " because " + (endTerm.verb ? "" : "you want "), "."];
+        return ["You want to ", " because " + (endTerm.hasVerb ? "" : ((endTerm.verb || endTerm.hasVerb) ? "you want to " : "you want ")), "."];
       case '/r/DistinctFrom':
         return (conj ? " are not " : " is not ");
       case '/r/MadeOf':
         return (conj ? " are made of " : " is made of ");
       case '/r/HasLastSubevent':
-        return ["The last thing you do when " + startTerm.second ? "" : "you ", " is ", "."];
+        return ["The last thing you do when " + (startTerm.second ? "" : "you "), " is ", "."];
       case '/r/NotCapableOf':
         return " can not ";
       case '/r/CausesDesire':
@@ -253,7 +253,22 @@ class EdgeFormatter {
     return s.out('text');
   }
 
+  static toGerund(text) {
+
+    var s = nlp(text);
+
+    if (s.terms().data()[0].tags.includes("Verb")) {
+      let g = s.verbs().list[0].conjugate().Gerund;
+      s.list[0].terms[0] = nlp(g).list[0].terms[0];
+    }
+
+    // s.verbs = v.toInfinitive();
+    return s.out('text');
+  }
+
   static pronounsToSecondPerson(text) {
+    text = text.replace(/\bhim\/her/g, "you");
+    text = text.replace(/\bher\/him/g, "you");
     text = text.replace(/\btheir\b/g, "your");
     text = text.replace(/\bhimself\b/g, "yourself");
     text = text.replace(/\bherself\b/g, "yourself");
