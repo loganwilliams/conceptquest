@@ -18,5 +18,10 @@ module.exports.edgesToTest = [
 	{edge: '/a/[/r/HasPrerequisite/,/c/en/run_in_marathon/,/c/en/train_for_months_beforehand/]', expected: 'If you want to run in a marathon, then you should train for months beforehand.'},
 	// not much we can do about misspellings here...
 	{edge: '/a/[/r/CausesDesire/,/c/en/purchacing_tennis_racket/,/c/en/play_tennis/]', expected: 'Purchacing a tennis racket makes you want to play tennis.'},
-	{edge: '/a/[/r/MotivatedByGoal/,/c/en/meet_people/,/c/en/find_partner/]', expected: 'You want to meet people because you want to find a partner.'}
+	{edge: '/a/[/r/MotivatedByGoal/,/c/en/meet_people/,/c/en/find_partner/]', expected: 'You want to meet people because you want to find a partner.'},
+	{edge: '/a/[/r/UsedFor/,/c/en/having_lunch/,/c/en/taking_break/]', expected: 'You remember that having lunch is a way to take a break.'},
+	{edge: '/a/[/r/UsedFor/,/c/en/meeting_people/,/c/en/getting_to_know/]', expected: 'You remember that meeting people is a way to get to know them.'},
+	{edge: '/a/[/r/Entails/,/c/en/board/v/,/c/en/feed/v/]', expected: '... to board... to feed...'},
+	{edge: '/a/[/r/NotHasProperty/,/c/en/computer_virus/,/c/en/living/]', expected: 'A computer virus is not living.'},
+	{edge: '/a/[/r/HasPrerequisite/,/c/en/living/,/c/en/oxygen/]', expected: 'If you want to live, then you should have oxygen.'}
 ];

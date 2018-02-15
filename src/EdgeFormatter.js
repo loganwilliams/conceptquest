@@ -28,7 +28,12 @@ class EdgeFormatter {
       'open':'Verb',
       'nod':'Verb',
       'find': 'Verb',
-      'breathe': 'Verb'
+      'breathe': 'Verb',
+      'meet': 'Verb',
+      'meeting': 'Verb',
+      'living': 'Verb',
+      'live': 'Verb',
+      'slash': 'Verb'
     }
 
     var term = (edge.end['@id'] === previousEdge) ? edge.start : edge.end;
@@ -55,8 +60,10 @@ class EdgeFormatter {
 
     if (this.convertVerb(edge.rel['@id'])[0] === 'infinitive') {
       startTerm = this.gerundToInfinitive(startTerm);
+
     } else if (this.convertVerb(edge.rel['@id'])[0] === 'gerund') {
       startTerm = this.toGerund(startTerm);
+
     }
 
     var startTags = nlp(startTerm, myWords).terms().data();
@@ -84,6 +91,7 @@ class EdgeFormatter {
     } else {
       endTerm = edge.end.label;
     }
+
 
     if (this.convertVerb(edge.rel['@id'])[1] === 'infinitive') {
       endTerm = this.gerundToInfinitive(endTerm);
@@ -178,9 +186,13 @@ class EdgeFormatter {
   static convertVerb(relation) {
     switch (relation) {
       case '/r/HasSubevent':
-        return ['infinitive', false];
+        return ['infinitive', 'infinitive'];
       case '/r/Causes':
         return [false, 'infinitive'];
+      case '/r/UsedFor':
+        return [false, 'infinitive'];
+      case '/r/HasPrerequisite':
+        return ['infinitive', false];
       default:
         return [false, false];
     }
@@ -234,6 +246,10 @@ class EdgeFormatter {
         return " can not ";
       case '/r/CausesDesire':
         return (startTerm.singular ? " makes" : " make") + " you want " + (endTerm.verb ? "to " : "");
+      case '/r/Entails':
+        return ['... to ', '... to ', '...'];
+      case '/r/NotHasProperty':
+        return ' is not ';
       default:
         return " " + relation + " ";
     }
@@ -246,7 +262,8 @@ class EdgeFormatter {
     var s = nlp(text);
 
     if (s.terms().data()[0].tags.includes("Gerund")) {
-      s.verbs().list[0] = s.verbs().toInfinitive().list[0];
+      let i = s.verbs().list[0].toInfinitive();
+      s.list[0].terms[0] = i.terms[0];
     }
 
     // s.verbs = v.toInfinitive();
