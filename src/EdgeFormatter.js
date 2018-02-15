@@ -23,20 +23,17 @@ class EdgeFormatter {
   //    and how to format/process each of the terms. It also applies any
   //    final transformations, for example punctuation and capitalization.
 
-  static formatEdge(edge, index, previousEdge, callback, identity) {
-    var myWords={
-      'open':'Verb',
-      'nod':'Verb',
-      'find': 'Verb',
-      'breathe': 'Verb',
-      'meet': 'Verb',
-      'meeting': 'Verb',
-      'living': 'Verb',
-      'live': 'Verb',
-      'slash': 'Verb'
+  static formatEdge(edge, index, previousEdge, callback, identity, useAlternatives=true) {
+    var term = (edge.end['@id'] === previousEdge) ? edge.start : edge.end;
+    var alternative;
+
+    if (useAlternatives) {
+      alternative = Math.floor(Math.random() * 2);
+    } else {
+      alternative = 0;
     }
 
-    var term = (edge.end['@id'] === previousEdge) ? edge.start : edge.end;
+    let convertVerb = this.convertVerb(edge.rel['@id'], alternative);
 
     // //////// ///// //// ////
     // GENERATE START TERM TEXT
@@ -58,76 +55,25 @@ class EdgeFormatter {
       startPOS.second = true;
     }
 
-    if (this.convertVerb(edge.rel['@id'])[0] === 'infinitive') {
-      startTerm = this.gerundToInfinitive(startTerm);
-
-    } else if (this.convertVerb(edge.rel['@id'])[0] === 'gerund') {
-      startTerm = this.toGerund(startTerm);
-
-    }
-
-    var startTags = nlp(startTerm, myWords).terms().data();
-
-    if (startTags[0].bestTag === "Verb") {
-      if (startTags[0].tags.includes("Gerund")) {
-        startPOS.gerund = true;
-      } else {
-        startPOS.verb = true;
-      }
-    } else {
-      for (let i = 0; i < startTags.length; i++) {
-        if (startTags[i].bestTag === "Plural") {
-          startPOS.singular = false;
-        }
-
-        if (startTags[i].bestTag === "Verb") {
-          startPOS.hasVerb = true;
-        }
-      }
-    }
+    let processedStartTerms = this.processTerm(startTerm, startPOS, convertVerb[0]);
 
     // //////// /// //// ////
     // GENERATE END TERM TEXT
 
     var endTerm;
+
     if (startPOS.second) {
       endTerm = this.pronounsToSecondPerson(edge.end.label);
     } else {
       endTerm = edge.end.label;
     }
 
-
-    if (this.convertVerb(edge.rel['@id'])[1] === 'infinitive') {
-      endTerm = this.gerundToInfinitive(endTerm);
-    } else if (this.convertVerb(edge.rel['@id'])[1] === 'gerund') {
-      endTerm = this.toGerund(endTerm);
-    }
-
-    var endTags = nlp(endTerm, myWords).terms().data();
-
-    var endPOS = {singular: true};
-    if ((endTags[0].bestTag === "Verb")) {
-      if (endTags[0].tags.includes("Gerund")) {
-        endPOS.gerund = true;
-      } else {
-        endPOS.verb = true;
-      }
-    } else {
-      for (let i = 0; i < endTags.length; i++) {
-        if (endTags[i].bestTag === "Plural") {
-          endPOS.singular = false;
-        }
-
-        if (endTags[i].bestTag === "Verb") {
-          endPOS.hasVerb = true;
-        }
-      }
-    }
+    let processedEndTerms = this.processTerm(endTerm, {singular: true}, convertVerb[1]);
 
     // /// /////// //////
     // GET (A,B,C) VALUES
     // get the (a,b,c) values from the grammar table
-    var grammar = this.grammar(edge.rel['@id'], startPOS, endPOS);
+    var grammar = this.grammar(edge.rel['@id'], processedStartTerms.pos, processedEndTerms.pos, alternative);
 
     // expand them into full (a, b, c) values. stored in a compressed form in
     // the table in order to make it easier to edit.
@@ -151,15 +97,15 @@ class EdgeFormatter {
     var text = [];
     text[0] = {type: "plain", value: a};
     if ((edge.end['@id'] === previousEdge)) {
-      text[1] = {type: "link", value: startTerm, callback: () => callback(term, index), pos: startPOS};
+      text[1] = {type: "link", value: processedStartTerms.term, callback: () => callback(term, index), pos: processedStartTerms.pos};
     } else {
-      text[1] = {type: "plain", value: startTerm, pos: startPOS};
+      text[1] = {type: "plain", value: processedStartTerms.term, pos: processedStartTerms.pos};
     }
     text[2] = {type: "plain", value: b};
     if ((edge.end['@id'] === previousEdge)) {
-      text[3] = {type: "plain", value: endTerm, pos: endPOS};
+      text[3] = {type: "plain", value: processedEndTerms.term, pos: processedEndTerms.pos};
     } else {
-      text[3] = {type: "link", value: endTerm, callback: () => callback(term, index), pos: endPOS};
+      text[3] = {type: "link", value: processedEndTerms.term, callback: () => callback(term, index), pos: processedEndTerms.pos};
     }
     text[4] = {type: "plain", value: c};
 
@@ -191,7 +137,49 @@ class EdgeFormatter {
     return [a, b, c];
   }
 
-  static convertVerb(relation) {
+  static processTerm(term, pos, conversion) {
+    const myWords={
+      'open':'Verb',
+      'nod':'Verb',
+      'find': 'Verb',
+      'breathe': 'Verb',
+      'meet': 'Verb',
+      'meeting': 'Verb',
+      'living': 'Verb',
+      'live': 'Verb',
+      'slash': 'Verb'
+    };
+
+    if (conversion === 'infinitive') {
+      term = this.gerundToInfinitive(term);
+    } else if (conversion === 'gerund') {
+      term = this.toGerund(term);
+    }
+
+    var tags = nlp(term, myWords).terms().data();
+
+    if ((tags[0].bestTag === "Verb")) {
+      if (tags[0].tags.includes("Gerund")) {
+        pos.gerund = true;
+      } else {
+        pos.verb = true;
+      }
+    } else {
+      for (let i = 0; i < tags.length; i++) {
+        if (tags[i].bestTag === "Plural") {
+          pos.singular = false;
+        }
+
+        if (tags[i].bestTag === "Verb") {
+          pos.hasVerb = true;
+        }
+      }
+    }
+
+    return {pos: pos, term: term};
+  }
+
+  static convertVerb(relation, alternative) {
     switch (relation) {
       case '/r/HasSubevent':
         return ['infinitive', 'infinitive'];
@@ -206,9 +194,10 @@ class EdgeFormatter {
     }
   }
 
-  static grammar(relation, startTerm, endTerm) {
+  static grammar(relation, startTerm, endTerm, alternative) {
     // pretty much the one english conjugation
     let conj = (startTerm.second || !startTerm.singular);
+    let sentence = (endTerm.verb || endTerm.hasVerb);
 
     switch (relation) {
       case '/r/Desires':
@@ -228,7 +217,12 @@ class EdgeFormatter {
       case '/r/ReceivesAction':
         return " can be ";
       case '/r/HasSubevent':
-        return ["Something that might happen when you ", " is " + (endTerm.verb ? "that you " : ""), "."];
+        switch (alternative) {
+          case 1:
+            return ["When you ", (endTerm.verb ? " you " : " something that happens is "), "."];
+          default:
+            return ["Something that might happen when you ", " is " + (endTerm.verb ? "that you " : ""), "."];
+        }
       case '/r/HasPrerequisite':
         return ["If you want to ", ", then you should " + (endTerm.verb ? "" : "have "), "."];
       case '/r/UsedFor':
@@ -243,7 +237,12 @@ class EdgeFormatter {
         return ' can cause ' + (endTerm.verb ? "you to " : "");
       case '/r/MotivatedBy':
       case '/r/MotivatedByGoal':
-        return ["You want to ", " because " + (endTerm.hasVerb ? "" : ((endTerm.verb || endTerm.hasVerb) ? "you want to " : "you want ")), "."];
+        switch (alternative) {
+          case 1:
+            return ["You need to ", " because " + (endTerm.hasVerb ? "" : (sentence ? "you have to " : "you have ")), "."];
+          default:
+            return ["You want to ", " because " + (endTerm.hasVerb ? "" : (sentence ? "you want to " : "you want ")), "."];
+        }
       case '/r/DistinctFrom':
         return (conj ? " are not " : " is not ");
       case '/r/MadeOf':
