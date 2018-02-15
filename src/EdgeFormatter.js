@@ -69,7 +69,11 @@ class EdgeFormatter {
     var startTags = nlp(startTerm, myWords).terms().data();
 
     if (startTags[0].bestTag === "Verb") {
-      startPOS.verb = true;
+      if (startTags[0].tags.includes("Gerund")) {
+        startPOS.gerund = true;
+      } else {
+        startPOS.verb = true;
+      }
     } else {
       for (let i = 0; i < startTags.length; i++) {
         if (startTags[i].bestTag === "Plural") {
@@ -103,7 +107,11 @@ class EdgeFormatter {
 
     var endPOS = {singular: true};
     if ((endTags[0].bestTag === "Verb")) {
-      endPOS.verb = true;
+      if (endTags[0].tags.includes("Gerund")) {
+        endPOS.gerund = true;
+      } else {
+        endPOS.verb = true;
+      }
     } else {
       for (let i = 0; i < endTags.length; i++) {
         if (endTags[i].bestTag === "Plural") {
@@ -190,7 +198,7 @@ class EdgeFormatter {
       case '/r/Causes':
         return [false, 'infinitive'];
       case '/r/UsedFor':
-        return [false, 'infinitive'];
+        return [false, false];
       case '/r/HasPrerequisite':
         return ['infinitive', false];
       default:
@@ -224,7 +232,7 @@ class EdgeFormatter {
       case '/r/HasPrerequisite':
         return ["If you want to ", ", then you should " + (endTerm.verb ? "" : "have "), "."];
       case '/r/UsedFor':
-        return ["You remember that ", (startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ")) + (endTerm.verb ? "" : "have "), "."];
+        return ["You remember that ", (startTerm.gerund ? " is for " : ((startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ")) + (endTerm.verb ? "" : "have "))), "."];
       case '/r/HasFirstSubevent':
         return ['The first thing you do when you ', ' is ', '.'];
       case '/r/SymbolOf':

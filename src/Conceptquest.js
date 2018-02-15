@@ -6,9 +6,8 @@
 //  * XXXXXXXX changing color backgrounds
 //  * background music
 //  * smooth transitions of clicked item -> theme
-//  * improve animation when game is starting
+//  * XXXXXXXX improve animation when game is starting
 //  * XXXXXXXX enable deep linking by detecting URL
-//  * text distortion/decay feature
 
 import React, { Component } from 'react';
 import _ from 'underscore';
@@ -17,6 +16,7 @@ import Card from './Card.js';
 import EdgeFormatter from './EdgeFormatter.js';
 
 class Conceptquest extends Component {
+
   constructor() {
       super();
       this.state = { 
@@ -25,15 +25,17 @@ class Conceptquest extends Component {
           '@id': '/c/en/person',
           'label': 'a person' },
         fadingOut: false,
-        intro: true,
-        items: [{type: "theme", edge: "intro-text", text: [{type: "plain", value: "You are a person."}]},
-          {type: "indent", edge: "intro-text-1", text: [{type: "plain", value: "That's what you're told."}]},
-          {type: "noindent", edge: "intro-text-2", text: [{type: "plain", value: "But you don't know what to do."}]},
-          {type: "indent", edge:"begin", text: [{type: "plain", value: "You need to "}, {type: "link", value:"practice", callback: this.beginGame.bind(this)}, {type: "plain", value:"."}]}]
+        intro: true
       };
 
       this.history = [];
       this.deadends = 0;
+      this.intro = [
+        {type: "theme", edge: "intro-text", text: [{type: "plain", value: "You are a person."}]},
+        {type: "indent", edge: "intro-text-1", text: [{type: "plain", value: "That's what you're told."}]},
+        {type: "noindent", edge: "intro-text-2", text: [{type: "plain", value: "But you don't know what to do."}]},
+        {type: "indent", edge:"begin", text: [{type: "plain", value: "You need to "}, {type: "link", value:"practice", callback: this.beginGame.bind(this)}, {type: "plain", value:"."}]}
+      ];
   }
 
   fetchNextCard(node, lastEdge, firstTry) {
@@ -103,13 +105,9 @@ class Conceptquest extends Component {
 
     window.setTimeout(() => {
       this.setState({fadingOut: false, intro: false});
-    }, 1500);
+    }, 2000);
 
-    // TODO
-    // okay, i need to make some kind of promise that is fulfilled after a window timeout so that 
-    // these things happen simultaneously
-
-    this.fetchNextCard('/c/en/person', EdgeFormatter.makePlain(this.state.items[0]), true);
+    this.fetchNextCard('/c/en/person', EdgeFormatter.makePlain(this.intro[0]), true);
   }
 
   transition(to, index) {
@@ -121,11 +119,12 @@ class Conceptquest extends Component {
 
     let edge = window.location.hash.slice(1, window.location.hash.length);
 
-    if (edge.length > 1) {
+    if ((edge.length > 1) && (edge !== "begin")) {
       let location = edge.slice(4, window.location.hash.length-2).split(',')[1];
       this.setState({
         intro: false,
-        fadingOut: false
+        fadingOut: false,
+        items: []
       });
 
       fetch('http://api.conceptnet.io/' + edge) 
@@ -140,6 +139,7 @@ class Conceptquest extends Component {
 
   render() {
     var cardClass;
+
     if (this.state.fadingOut) {
       cardClass = "Card-container Card-fade-out";
     } else {
@@ -149,7 +149,7 @@ class Conceptquest extends Component {
     if (this.state.intro) {
       return (
         <div className={cardClass}>
-          <Card key="intro-card" items={this.state.items} />
+          <Card key="intro-card" items={this.intro} />
         </div>
       );
     } else {
