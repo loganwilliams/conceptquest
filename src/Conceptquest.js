@@ -8,34 +8,41 @@
 //  * smooth transitions of clicked item -> theme
 //  * XXXXXXXX improve animation when game is starting
 //  * XXXXXXXX enable deep linking by detecting URL
+//  * add destination node/victory condition
 
 import React, { Component } from 'react';
 import _ from 'underscore';
 import './Conceptquest.css';
 import Card from './Card.js';
 import EdgeFormatter from './EdgeFormatter.js';
+import {commonTerms} from './commonTerms.js';
 
 class Conceptquest extends Component {
 
   constructor() {
       super();
+
+      let goal = commonTerms[Math.floor(Math.random() * commonTerms.length)];
+
       this.state = { 
         choices: [],
         identity: {
           '@id': '/c/en/person',
           'label': 'a person' },
         fadingOut: false,
-        intro: true
+        intro: true,
+        introText: [
+          {type: "theme", edge: "intro-text", text: [{type: "plain", value: "Like everyone, you are learning what it means to be a person."}]},
+          {type: "indent", edge: "intro-text-1", text: [{type: "plain", value: "Unlike everyone, you are in a computer."}]},
+          {type: "noindent", edge: "intro-text-2", text: [{type: "plain", value: "Fortunately, you have a semantic network available to learn from."}]},
+          {type: "indent", edge:"begin", text: EdgeFormatter.formatGoal(goal.label, this.beginGame.bind(this))},
+          {type: "indent", edge:"intro-text-final", text: [{type: "plain", value: "Try to learn as much as you can along the way."}]}
+        ],
+        goal: goal
       };
 
       this.history = [];
       this.deadends = 0;
-      this.intro = [
-        {type: "theme", edge: "intro-text", text: [{type: "plain", value: "You are a person."}]},
-        {type: "indent", edge: "intro-text-1", text: [{type: "plain", value: "That's what you're told."}]},
-        {type: "noindent", edge: "intro-text-2", text: [{type: "plain", value: "But you don't know what to do."}]},
-        {type: "indent", edge:"begin", text: [{type: "plain", value: "You need to "}, {type: "link", value:"practice", callback: this.beginGame.bind(this)}, {type: "plain", value:"."}]}
-      ];
   }
 
   fetchNextCard(node, lastEdge, firstTry) {
@@ -64,7 +71,7 @@ class Conceptquest extends Component {
             this.deadends = 0;
           }
 
-         this.animateTransitionTo(edges);
+         this.setState({items: edges});
 
         } else {
           this.deadends += 1;
@@ -78,10 +85,6 @@ class Conceptquest extends Component {
         }
 
       });
-  }
-
-  animateTransitionTo(edges) {
-     this.setState({items: edges});
   }
 
   filterResponse(edge, previousEdgeId) {
@@ -107,11 +110,26 @@ class Conceptquest extends Component {
       this.setState({fadingOut: false, intro: false});
     }, 2000);
 
-    this.fetchNextCard('/c/en/person', EdgeFormatter.makePlain(this.intro[0]), true);
+    this.fetchNextCard('/c/en/person', EdgeFormatter.makePlain(this.state.introText[3]), true);
+  }
+
+  victory() {
+    console.log('victory!!!');
+    console.log(this.history);
+
+    this.setState({items: [
+      {type: "theme", edge: "victory-text", text: [{type: "plain", value: "Congratulations! You " + this.state.goal.label}]}
+      ]});
+
   }
 
   transition(to, index) {
-    this.fetchNextCard(to['@id'], EdgeFormatter.makePlain(this.state.items[index]), true);
+    if (to['@id'] === this.state.goal['@id']) {
+      // the player has won
+      this.victory();
+    } else {
+      this.fetchNextCard(to['@id'], EdgeFormatter.makePlain(this.state.items[index]), true);
+    }
   }
 
   componentWillMount() {
@@ -135,6 +153,7 @@ class Conceptquest extends Component {
           this.fetchNextCard(location, previousEdge, true);
       });
     }
+
   }
 
   render() {
@@ -146,19 +165,9 @@ class Conceptquest extends Component {
       cardClass = "Card-container";
     }
 
-    if (this.state.intro) {
-      return (
-        <div className={cardClass}>
-          <Card key="intro-card" items={this.intro} />
-        </div>
-      );
-    } else {
-      return (
-        <div className={cardClass}>
-          <Card key={"play-card"} items={this.state.items} />
-        </div>
-      );
-    }
+    return (<div className={cardClass}>
+      <Card key="intro-card" items={this.state.intro ? this.state.introText : this.state.items} />
+    </div>);
 
   }
 }

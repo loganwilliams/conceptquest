@@ -9,6 +9,30 @@
 
 import nlp from 'compromise';
 
+const myWords={
+  'open':'Verb',
+  'nod':'Verb',
+  'find': 'Verb',
+  'breathe': 'Verb',
+  'meet': 'Verb',
+  'meeting': 'Verb',
+  'living': 'Verb',
+  'live': 'Verb',
+  'slash': 'Verb',
+  'fly': 'Verb',
+  'water': 'Verb',
+  'chat': 'Verb'
+};
+
+let plugin= {
+  conjugations:{
+    join:{Gerund:'joining'},
+    improve:{Gerund: 'improving'}
+  }
+}
+
+nlp.plugin(plugin)
+
 class EdgeFormatter {
   // Every sentence fits into the pattern 
   //    a {term} b {term} c.
@@ -138,18 +162,6 @@ class EdgeFormatter {
   }
 
   static processTerm(term, pos, conversion) {
-    const myWords={
-      'open':'Verb',
-      'nod':'Verb',
-      'find': 'Verb',
-      'breathe': 'Verb',
-      'meet': 'Verb',
-      'meeting': 'Verb',
-      'living': 'Verb',
-      'live': 'Verb',
-      'slash': 'Verb'
-    };
-
     if (conversion === 'infinitive') {
       term = this.gerundToInfinitive(term);
     } else if (conversion === 'gerund') {
@@ -186,7 +198,7 @@ class EdgeFormatter {
       case '/r/Causes':
         return [false, 'infinitive'];
       case '/r/UsedFor':
-        return [false, false];
+        return [false, 'gerund'];
       case '/r/HasPrerequisite':
         return ['infinitive', false];
       default:
@@ -201,7 +213,12 @@ class EdgeFormatter {
 
     switch (relation) {
       case '/r/Desires':
-        return ' want' + (conj ? " " : "s ") + (endTerm.verb ? "to " : "");
+        switch (alternative) {
+          case 1:
+            return [(conj ? "Do " : "Does "), " want " + (endTerm.verb ? "to " : ""), "?"];
+          default:
+            return ' want' + (conj ? " " : "s ") + (endTerm.verb ? "to " : "");
+        }
       case '/r/CapableOf':
         return ' could ';
       case '/r/NotDesires':
@@ -315,6 +332,69 @@ class EdgeFormatter {
 
     cardItem.text = [{type: "plain", value: newText}];
     return cardItem;
+  }
+
+  static stripDeterminersAndPronouns(label) {
+    var phrase = nlp(label, myWords);
+
+    phrase.match("^(#Pronoun|#Determiner)").delete();
+
+    return phrase.out('text').trim().toLowerCase();
+  }
+
+  static formatGoal(label, callback) {
+    label = this.stripDeterminersAndPronouns(label);
+
+    var choice = Math.floor(Math.random()*4);
+
+    var goal = nlp(label, myWords);
+    var nTerms = goal.terms().data().length;
+
+    for (var i = 0; i < nTerms; i++) {
+      var term = goal.terms().data()[i];
+      console.log(term);
+
+      if (term.bestTag === "Verb") {
+        var verb = '';
+        if (term.tags.includes("Gerund")) {
+          label = this.gerundToInfinitive(label);
+        }
+
+        switch (choice) {
+          case 0:
+            return [{type: 'plain', value: 'You want to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+          case 1:
+            return [{type: 'plain', value: 'You need to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+          case 2:
+            return [{type: 'plain', value: 'You want to discover how to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+          default:
+            return [{type: 'plain', value: 'You need to find a way to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+        }
+      }
+
+      if (term.tags.includes("Noun")) {
+        var article = '';
+
+        if (term.tags.includes("Singular")) {
+          article = 'a ';
+        }
+
+        switch (choice) {
+          case 0:
+            return [{type: 'plain', value: 'You want to find ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+          case 1:
+            return [{type: 'plain', value: 'You need to locate ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+          case 2:
+            return [{type: 'plain', value: 'You want to discover ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+          default:
+            return [{type: 'plain', value: 'You want to see ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+        }
+
+        return label;
+      }
+    }
+
+    return label;
   }
 
 }

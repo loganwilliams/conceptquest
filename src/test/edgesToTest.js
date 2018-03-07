@@ -33,6 +33,8 @@ module.exports.edgesToTest = [
 	{edge: '/a/[/r/UsedFor/,/c/en/having_lunch/,/c/en/taking_break/]', expected: 'You remember that having lunch is for taking a break.'},
 	{edge: '/a/[/r/UsedFor/,/c/en/meeting_people/,/c/en/getting_to_know/]', expected: 'You remember that meeting people is for getting to know them.'},
 	{edge: '/a/[/r/UsedFor/,/c/en/taking_break/,/c/en/smoking_cigarette/]', expected: 'You remember that taking a break is for smoking a cigarette.'},
+	{edge: '/a/[/r/UsedFor/,/c/en/purchasing_cellular_phone/,/c/en/reach_people_fast/]', expected: 'You remember that purchasing a cellular phone is for reaching people fast.'},
+	{edge: '/a/[/r/UsedFor/,/c/en/vegetable_garden/,/c/en/saving_money/]', expected: 'You remember that a vegetable garden is used to save money.'},
 
 	{edge: '/a/[/r/Entails/,/c/en/board/v/,/c/en/feed/v/]', expected: '... to board... to feed...'}
 ];
