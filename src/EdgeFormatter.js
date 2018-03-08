@@ -21,13 +21,15 @@ const myWords={
   'slash': 'Verb',
   'fly': 'Verb',
   'water': 'Verb',
-  'chat': 'Verb'
+  'chat': 'Verb',
+  'light': 'Verb'
 };
 
 let plugin= {
   conjugations:{
     join:{Gerund:'joining'},
-    improve:{Gerund: 'improving'}
+    improve:{Gerund: 'improving'},
+    type:{Gerund: 'typing'}
   }
 }
 
@@ -362,13 +364,13 @@ class EdgeFormatter {
 
         switch (choice) {
           case 0:
-            return [{type: 'plain', value: 'You want to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You want to ' + verb + label + '.'}];
           case 1:
-            return [{type: 'plain', value: 'You need to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You need to ' + verb + label + '.'}];
           case 2:
-            return [{type: 'plain', value: 'You want to discover how to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You want to discover how to ' + verb + label + '.'}];
           default:
-            return [{type: 'plain', value: 'You need to find a way to ' + verb}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You need to find a way to ' + verb + label + '.'}];
         }
       }
 
@@ -381,13 +383,13 @@ class EdgeFormatter {
 
         switch (choice) {
           case 0:
-            return [{type: 'plain', value: 'You want to find ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You want to find ' + article + label + '.'}];
           case 1:
-            return [{type: 'plain', value: 'You need to locate ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You need to locate ' + article + label + '.'}];
           case 2:
-            return [{type: 'plain', value: 'You want to discover ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You want to discover ' + article + label + '.'}];
           default:
-            return [{type: 'plain', value: 'You want to see ' + article}, {type: 'link', value: label, callback: callback}, {type: 'plain', value: '.'}];
+            return [{type: 'plain', value: 'You want to see ' + article + label + '.'}];
         }
 
         return label;

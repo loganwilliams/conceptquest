@@ -8,6 +8,8 @@ class CardText extends Component {
         linetext.push(<span className="CardText-normal" key={this.props.keyValue + i}>{this.props.text[i].value}</span>);
       } else if (this.props.text[i].type === "link") {
         linetext.push(<a href={"#" + this.props.keyValue} onClick={this.props.text[i].callback} key={this.props.keyValue + i}>{this.props.text[i].value}</a>);
+      } else if (this.props.text[i].type === "strong") {
+        linetext.push(<span className="CardText-strong" key={this.props.keyValue + i}>{this.props.text[i].value}</span>);
       }
     }
 
