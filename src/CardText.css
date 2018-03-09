@@ -1,0 +1,30 @@
+.Card-line {
+  transition: 1s;
+  animation-duration: 1s;
+  animation-name: slide-fade;
+}
+
+.Card-line:first-letter {
+  text-transform: capitalize;
+}
+
+.Card-indent {
+  margin-left: 2em;
+}
+
+.Card-noindent {
+  /*margin-right: 2em;*/
+}
+
+div.Card-theme {
+  /*font-weight: 700;*/
+  /*margin-top: 0px;*/
+  transition: 1s;
+}
+
+.Card-theme,
+.CardText-strong,
+.Card-strong {
+  color: white;
+  text-shadow: 0px 0px 6px white;
+}
