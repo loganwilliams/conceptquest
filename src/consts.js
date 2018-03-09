@@ -1,4 +1,2 @@
-const numTurns = 5;
-const firstTheme = 4;
-
-export {numTurns, firstTheme};
+export const numTurns = 4;
+export const firstTheme = 4;

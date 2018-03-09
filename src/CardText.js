@@ -1,29 +1,48 @@
-import React, { Component } from 'react';
+import React, { Component } from "react";
+import "./CardText.css";
 
 class CardText extends Component {
   render() {
-    var lineClass = "";
-    if (this.props.item.style === "theme") {
-      lineClass = "Card-line Card-noindent Card-theme";
-    } else if (this.props.item.style === "indent") {
-      lineClass = "Card-line Card-indent";
-    } else if (this.props.item.style === "strong") {
-      lineClass = "Card-line Card-strong Card-indent";
-    } else {
-      lineClass = "Card-line Card-noindent";
+    let lineClass = "CardText-line";
+
+    switch (this.props.item.style) {
+      case "theme":
+        lineClass += " Card-noindent Card-theme";
+        break;
+      case "indent":
+        lineClass += " Card-indent";
+        break;
+      case "strong":
+        lineClass += " Card-strong Card-indent";
+        break;
+      default:
+        lineClass += " Card-noindent";
     }
 
-    let linetext = [];
-
-    for (let i = 0; i < this.props.item.text.length; i++) {
-      if (this.props.item.text[i].type === "plain") {
-        linetext.push(<span className="CardText-normal" key={this.props.item.edge + i}>{this.props.item.text[i].value}</span>);
-      } else if (this.props.item.text[i].type === "link") {
-        linetext.push(<a href={"#" + this.props.keyValue} onClick={this.props.item.text[i].callback} key={this.props.item.edge + i}>{this.props.item.text[i].value}</a>);
-      } else if (this.props.item.text[i].type === "strong") {
-        linetext.push(<span className="CardText-strong" key={this.props.item.edge + i}>{this.props.item.text[i].value}</span>);
+    const linetext = this.props.item.text.map((text, i) => {
+      switch (text.type) {
+        case "plain":
+          return (
+            <span className="CardText-normal" key={text.value + i}>
+              {text.value}
+            </span>
+          );
+        case "link":
+          return (
+            <a href="#" onClick={text.callback} key={text.value + i}>
+              {text.value}
+            </a>
+          );
+        case "strong":
+          return (
+            <span className="CardText-strong" key={text.value + i}>
+              {text.value}
+            </span>
+          );
+        default:
+          return;
       }
-    }
+    });
 
     return <div className={lineClass}>{linetext}</div>;
   }
