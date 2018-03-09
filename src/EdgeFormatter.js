@@ -24,7 +24,9 @@ const myWords = {
   chat: "Verb",
   light: "Verb",
   save: "Verb",
-  saving: "Verb"
+  saving: "Verb",
+  tell: "Verb",
+  telling: "Verb"
 };
 
 let plugin = {
@@ -32,7 +34,8 @@ let plugin = {
     join: { Gerund: "joining" },
     improve: { Gerund: "improving" },
     type: { Gerund: "typing" },
-    save: { Gerund: "saving" }
+    save: { Gerund: "saving" },
+    tell: { Gerund: "telling" }
   }
 };
 
@@ -60,8 +63,8 @@ class EdgeFormatter {
     identity,
     useAlternatives = true
   ) {
-    var term = edge.end["@id"] === previousEdge ? edge.start : edge.end;
-    var alternative;
+    const term = edge.end["@id"] === previousEdge ? edge.start : edge.end;
+    let alternative;
 
     if (useAlternatives) {
       alternative = Math.floor(Math.random() * 2);
@@ -74,8 +77,8 @@ class EdgeFormatter {
     // //////// ///// //// ////
     // GENERATE START TERM TEXT
 
-    var startTerm = edge.start.label;
-    var startPOS = { singular: true };
+    let startTerm = edge.start.label;
+    let startPOS = { singular: true };
 
     // special case if start term matches our identity
     let singularStart = nlp(startTerm);
@@ -100,7 +103,7 @@ class EdgeFormatter {
     // //////// /// //// ////
     // GENERATE END TERM TEXT
 
-    var endTerm;
+    let endTerm;
 
     if (startPOS.second) {
       endTerm = this.pronounsToSecondPerson(edge.end.label);
@@ -117,7 +120,7 @@ class EdgeFormatter {
     // /// /////// //////
     // GET (A,B,C) VALUES
     // get the (a,b,c) values from the grammar table
-    var grammar = this.grammar(
+    const grammar = this.grammar(
       edge.rel["@id"],
       processedStartTerms.pos,
       processedEndTerms.pos,
@@ -126,9 +129,9 @@ class EdgeFormatter {
 
     // expand them into full (a, b, c) values. stored in a compressed form in
     // the table in order to make it easier to edit.
-    var a;
-    var b;
-    var c;
+    let a;
+    let b;
+    let c;
 
     if (typeof grammar === "string") {
       a = "";
@@ -143,7 +146,7 @@ class EdgeFormatter {
     // /// // /// ////////
     // PUT IT ALL TOGETHER
 
-    var text = [];
+    let text = [];
     text[0] = { type: "plain", value: a };
     if (edge.end["@id"] === previousEdge) {
       text[1] = {
@@ -211,7 +214,7 @@ class EdgeFormatter {
       term = this.toGerund(term);
     }
 
-    var tags = nlp(term, myWords)
+    const tags = nlp(term, myWords)
       .terms()
       .data();
 
@@ -381,7 +384,7 @@ class EdgeFormatter {
   // converts the first verb in gerund form to a verb in infinitive form.
   // does not affect non-verb words.
   static gerundToInfinitive(text) {
-    var s = nlp(text);
+    let s = nlp(text);
 
     if (
       s
@@ -398,7 +401,7 @@ class EdgeFormatter {
   }
 
   static toGerund(text) {
-    var s = nlp(text);
+    let s = nlp(text);
 
     if (
       s
@@ -433,7 +436,7 @@ class EdgeFormatter {
 
   static makePlain(cardItem) {
     let newText = "";
-    for (var i = 0; i < cardItem.text.length; i++) {
+    for (let i = 0; i < cardItem.text.length; i++) {
       newText += cardItem.text[i].value;
     }
 
@@ -445,7 +448,7 @@ class EdgeFormatter {
   }
 
   static stripDeterminersAndPronouns(label) {
-    var phrase = nlp(label, myWords);
+    let phrase = nlp(label, myWords);
 
     phrase.match("^(#Pronoun|#Determiner)").delete();
 
@@ -510,20 +513,74 @@ class EdgeFormatter {
     ];
   }
 
+  static formatGoalPast(label, success) {
+    label = this.stripDeterminersAndPronouns(label);
+
+    const goal = nlp(label, myWords);
+    const nTerms = goal.terms().data().length;
+
+    for (let i = 0; i < nTerms; i++) {
+      const term = goal.terms().data()[i];
+
+      if (term.bestTag === "Verb") {
+        if (term.tags.includes("Gerund")) {
+          label = this.gerundToInfinitive(label);
+        }
+
+        if (success) {
+          return [
+            {
+              type: "plain",
+              value: "You managed to " + label + " succesfully!"
+            }
+          ];
+        } else {
+          return [
+            { type: "plain", value: "You failed to " + label + "." }
+          ];
+        }
+      }
+
+      if (term.tags.includes("Noun")) {
+        let article = "";
+
+        if (term.tags.includes("Singular")) {
+          article = "a ";
+        }
+
+        if (success) {
+          return [
+            {
+              type: "plain",
+              value: "You successfully found " + article + label + "!"
+            }
+          ];
+        } else {
+          return [
+            {
+              type: "plain",
+              value: "You weren't able to find " + article + label + "."
+            }
+          ];
+        }
+      }
+    }
+
+    return label;
+  }
+
   static formatGoal(label) {
     label = this.stripDeterminersAndPronouns(label);
 
-    var choice = Math.floor(Math.random() * 4);
+    const choice = Math.floor(Math.random() * 4);
 
-    var goal = nlp(label, myWords);
-    var nTerms = goal.terms().data().length;
+    const goal = nlp(label, myWords);
+    const nTerms = goal.terms().data().length;
 
-    for (var i = 0; i < nTerms; i++) {
-      var term = goal.terms().data()[i];
-      console.log(term);
+    for (let i = 0; i < nTerms; i++) {
+      let term = goal.terms().data()[i];
 
       if (term.bestTag === "Verb") {
-        var verb = "";
         if (term.tags.includes("Gerund")) {
           label = this.gerundToInfinitive(label);
         }
@@ -531,31 +588,31 @@ class EdgeFormatter {
         switch (choice) {
           case 0:
             return [
-              { type: "plain", value: "You want to " + verb + label + "." }
+              { type: "plain", value: "You want to " + label + "." }
             ];
           case 1:
             return [
-              { type: "plain", value: "You need to " + verb + label + "." }
+              { type: "plain", value: "You need to " + label + "." }
             ];
           case 2:
             return [
               {
                 type: "plain",
-                value: "You want to discover how to " + verb + label + "."
+                value: "You want to discover how to " + label + "."
               }
             ];
           default:
             return [
               {
                 type: "plain",
-                value: "You need to find a way to " + verb + label + "."
+                value: "You need to find a way to " + label + "."
               }
             ];
         }
       }
 
       if (term.tags.includes("Noun")) {
-        var article = "";
+        let article = "";
 
         if (term.tags.includes("Singular")) {
           article = "a ";

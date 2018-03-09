@@ -27,6 +27,12 @@
   animation-name: slide-fade;
 }
 
+.Card-fade-in {
+  animation-duration: 1.5s;
+  animation-name: slide-fade;
+  opacity: 1;
+}
+
 @keyframes slide-fade {
   from {
     opacity: 0;

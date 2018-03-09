@@ -1,12 +1,12 @@
 html {
-  background-color: #222222;
+  background-color: black;
 }
 
 body {
   margin: 0px;
   font-family: "EB Garamond", "Georgia", "Cambria", sans-serif;
   font-size: 2em;
-  background-color: #222222;
+  /*background-color: #222222;*/
   height: 100vh;
   transition: 10s;
   transition-property: background-color;
@@ -19,11 +19,22 @@ body {
   height: 100%;
 }
 
-a {
+button {
   color: white;
+  background:none;
+  border:none; 
+  padding:0!important;
+  font: inherit;
+  /*border is optional*/
+  cursor: pointer;
+  text-decoration: underline;
 }
 
-a:hover {
+button:hover {
   color: #444;
   background-color: #fff;
+}
+
+button:focus {
+  outline: none;
 }

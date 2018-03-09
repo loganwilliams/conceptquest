@@ -8,6 +8,12 @@ import fs from "fs";
 import EdgeFormatter from "../EdgeFormatter.js";
 import { edgesToTest } from "./edgesToTest.js";
 
+// TODO:
+// * Add tests for goal formatter
+// * Add tests for clicking on links?
+// * Add tests for progress
+// * Add tests for final/score
+
 describe("<Conceptquest />", () => {
 	it("renders without crashing", () => {
 		mount(<Conceptquest />);

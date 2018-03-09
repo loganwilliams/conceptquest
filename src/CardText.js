@@ -29,9 +29,9 @@ class CardText extends Component {
           );
         case "link":
           return (
-            <a href="#" onClick={text.callback} key={text.value + i}>
+            <button onClick={text.callback} key={text.value + i}>
               {text.value}
-            </a>
+            </button>
           );
         case "strong":
           return (
@@ -40,7 +40,7 @@ class CardText extends Component {
             </span>
           );
         default:
-          return;
+          return <span />;
       }
     });
 

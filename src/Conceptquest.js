@@ -5,7 +5,7 @@
 //  * -------- opportunities to change identity, better tests of identity
 //  * XXXXXXXX changing color backgrounds
 //  * background music
-//  * smooth transitions of clicked item -> theme
+//  * -------- smooth transitions of clicked item -> theme
 //  * XXXXXXXX improve animation when game is starting
 //  * XXXXXXXX enable deep linking by detecting URL
 //  * XXXXXXXX add destination node/victory condition
@@ -13,10 +13,10 @@
 //  * XXXXXXXX Create end-game screen
 //  * XXXXXXXX Make victory screen a separate component
 //  * XXXXXXXX Animate end game screen
-//  * Fade colors as the game progresses
+//  * XXXXXXXX Fade colors as the game progresses
 //  * XXXXXXXX Add stored "achieved victory" state
-//  * Make a response tot he
-//  * Use victory state in final screen
+//  * XXXXXXXX Make a response to achieving victory.
+//  * XXXXXXXX Use victory state in final screen
 //  * XXXXXXXX Create score calculator
 //  * XXXXXXXX Make number of turns variable
 
@@ -37,19 +37,26 @@ class Conceptquest extends Component {
     console.log(goal);
 
     this.state = {
-      // identity is currently unused
+      // gameState can be "intro", "playing", "warning", "victory", or "endgame"
       gameState: "intro",
+      // identity is currently unused
       identity: {
         "@id": "/c/en/person",
         label: "a person"
       },
       // settings this to true fades out the current card
       fadingOut: false,
-      goal,
+      // the user's target state
+      goal: goal,
+      // the current score
       score: 0,
+      // whether or not the user has reached their victory state
       victory: false,
+      // every state the user has reached
       history: [],
+      // what point will the game go back to if the user hits a dead end
       backupPointer: -1,
+      // the text used to introduce the game (stored here because it is generated with random variants)
       introText: EdgeFormatter.generateIntroText(goal, this.beginGame)
     };
   }
@@ -94,7 +101,13 @@ class Conceptquest extends Component {
 
       // unless we have already visited this edge, in which case the backup pointer does not change!
       if (
-        this.state.history.map(h => h.key["@id"]).includes(lastEdge.key["@id"])
+        this.state.history
+          .slice(
+            Math.max(0, this.state.history.length - 5),
+            this.state.history.length
+          )
+          .map(h => h.key["@id"])
+          .includes(lastEdge.key["@id"])
       ) {
         newPointer = this.state.backupPointer;
       }
@@ -191,21 +204,73 @@ class Conceptquest extends Component {
   };
 
   transition = (to, index) => {
+    // if we have achieved victory, we want a special card transition, and some bonus points
     if (to["@id"] === this.state.goal["@id"]) {
-      // the player has won
       this.setState({
         victory: true,
-        score: this.state.score + 10000,
-        gameState: "victory"
+        score: this.state.score + 1000,
+        fadingOut: true
       });
 
+      window.setTimeout(() => {
+        this.getCard(EdgeFormatter.makePlain(this.state.items[index]));
+        this.setState({
+          gameState: "victory",
+          fadingOut: false
+        });
+      }, 2000);
+
       console.log("victory achieved");
+
+      // if we are halfway done, we want a special card transition
+    } else if (this.state.history.length === 10 && !this.state.victory) {
+      this.setState({ fadingOut: true });
+
+      window.setTimeout(() => {
+        this.getCard(EdgeFormatter.makePlain(this.state.items[index]));
+        this.setState({
+          gameState: "warning",
+          fadingOut: false
+        });
+      }, 2000);
+
+      // otherwise, we have a completely normal transition
+    } else {
+      this.getCard(EdgeFormatter.makePlain(this.state.items[index]));
+
+      // unless, of course, the game is over
+      if (this.state.history.length === consts.numTurns - 1) {
+        this.setState({ gameState: "endgame", fadingOut: true });
+      }
     }
+  };
 
-    this.getCard(EdgeFormatter.makePlain(this.state.items[index]));
+  continueGame = () => {
+    this.setState({
+      fadingOut: true
+    });
 
-    if (this.state.history.length === consts.numTurns - 1) {
-      this.setState({ gameState: "endgame", fadingOut: true });
+    window.setTimeout(() => {
+      this.setState({
+        gameState: "playing",
+        fadingOut: false
+      });
+    }, 2000);
+  };
+
+  getBackgroundColor = () => {
+    const progress = this.state.history.length / consts.numTurns;
+
+    if (!this.state.victory) {
+      const r = Math.round(40 * progress + 40);
+      const g = Math.round(40 * (1 - progress));
+      const b = Math.round(40 * (1 - progress));
+      return "rgba(" + r + "," + g + "," + b + ",0.5)";
+    } else {
+      const g = Math.round(40 * progress + 40);
+      const r = Math.round(40 * (1 - progress));
+      const b = Math.round(40 * (1 - progress));
+      return "rgba(" + r + "," + g + "," + b + ",0.5)";
     }
   };
 
@@ -217,23 +282,84 @@ class Conceptquest extends Component {
       this.state.backupPointer
     );
 
-    var items = this.state.items;
+    console.log(
+      EdgeFormatter.formatGoalPast(this.state.goal.label, this.state.victory)
+    );
+    let items = this.state.items;
 
     switch (this.state.gameState) {
       case "intro":
         items = this.state.introText;
         break;
       case "victory":
-        items = [];
+        items = [
+          {
+            style: "theme",
+            edge: "victory-theme",
+            text: [{ type: "plain", value: "You achieved your goal." }]
+          },
+          {
+            style: "indent",
+            edge: "victory-goal",
+            text: EdgeFormatter.formatGoalPast(this.state.goal.label, true)
+          },
+          {
+            style: "indent",
+            edge: "victory-advance",
+            text: [
+              {
+                type: "link",
+                value: "You may live the rest of your days in peace.",
+                callback: this.continueGame
+              }
+            ]
+          }
+        ];
+        break;
+      case "warning":
+        items = [
+          {
+            style: "theme",
+            edge: "warning-theme",
+            text: [{ type: "plain", value: "Warning." }]
+          },
+          {
+            style: "indent",
+            edge: "warning-warning",
+            text: [
+              { type: "plain", value: "Your training session is half over." }
+            ]
+          },
+          {
+            style: "indent",
+            edge: "warning-advance",
+            text: [
+              {
+                type: "link",
+                value: "Has your life been what you wished?",
+                callback: this.continueGame
+              }
+            ]
+          }
+        ];
         break;
       default:
     }
 
     return (
-      <div id="main">
+      <div
+        id="main"
+        style={{
+          backgroundColor: this.getBackgroundColor()
+        }}
+      >
         <Progress
           history={this.state.history}
           final={this.state.gameState === "endgame"}
+          goalText={EdgeFormatter.formatGoalPast(
+            this.state.goal.label,
+            this.state.victory
+          )}
           score={this.state.score}
           reset={this.resetGame}
         />

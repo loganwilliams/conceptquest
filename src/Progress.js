@@ -10,6 +10,8 @@ class Progress extends Component {
 					<ul>
 						<li>{"> training... 3 / 3 epochs completed"}</li>
 						<li>{">"}</li>
+						<li>{"> " + this.props.goalText[0].value}</li>
+						<li>{">"}</li>
 						{this.props.history
 							.slice(1, this.props.history.length)
 							.map((h, i) => {
@@ -22,14 +24,14 @@ class Progress extends Component {
 						{/* reformat the score as "training loss" (for fun) */}
 						<li>
 							{"> training loss: " +
-								(1000.0 / this.props.score).toFixed(4)}
+								(400.0 / this.props.score).toFixed(4)}
 						</li>
 						<li>{">"}</li>
 						<li>
 							{"> "}
-							<a href="#" onClick={this.props.reset}>
+							<button onClick={this.props.reset}>
 								play again?
-							</a>
+							</button>
 						</li>
 					</ul>
 				</div>

@@ -13,12 +13,10 @@
 }
 
 .Card-noindent {
-  /*margin-right: 2em;*/
+  margin-right: 2em;
 }
 
 div.Card-theme {
-  /*font-weight: 700;*/
-  /*margin-top: 0px;*/
   transition: 1s;
 }
 
