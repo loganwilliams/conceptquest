@@ -22,14 +22,17 @@ const myWords={
   'fly': 'Verb',
   'water': 'Verb',
   'chat': 'Verb',
-  'light': 'Verb'
+  'light': 'Verb',
+  'save': 'Verb',
+  'saving': 'Verb'
 };
 
 let plugin= {
   conjugations:{
     join:{Gerund:'joining'},
     improve:{Gerund: 'improving'},
-    type:{Gerund: 'typing'}
+    type:{Gerund: 'typing'},
+    save:{Gerund: 'saving'}
   }
 }
 
@@ -150,7 +153,7 @@ class EdgeFormatter {
       text[0].value = text[0].value[0].toUpperCase() + text[0].value.slice(1);
     }
 
-    return {type: "indent", key: term, text: text, edge: edge['@id']};
+    return {style: "indent", key: term, text: text, edge: edge['@id']};
   }
 
   // conceptNetGrammar returns the surfaceText of an edge in the [a,b,c] format
@@ -175,6 +178,7 @@ class EdgeFormatter {
     if ((tags[0].bestTag === "Verb")) {
       if (tags[0].tags.includes("Gerund")) {
         pos.gerund = true;
+        pos.verb = true;
       } else {
         pos.verb = true;
       }
@@ -245,7 +249,7 @@ class EdgeFormatter {
       case '/r/HasPrerequisite':
         return ["If you want to ", ", then you should " + (endTerm.verb ? "" : "have "), "."];
       case '/r/UsedFor':
-        return ["You remember that ", (startTerm.gerund ? " is for " : ((startTerm.verb ? " is a way to " : (startTerm.singular ? " is used to " : " are used to ")) + (endTerm.verb ? "" : "have "))), "."];
+        return ["You remember that ", (startTerm.gerund ? " is for " : ((startTerm.verb ? " is a way to " : (startTerm.singular ? " is used " + (endTerm.gerund ? "for " : "to ") : " are used " + (endTerm.gerund ? "for " : "to "))) + (endTerm.verb ? "" : "have "))), "."];
       case '/r/HasFirstSubevent':
         return ['The first thing you do when you ', ' is ', '.'];
       case '/r/SymbolOf':
@@ -332,8 +336,7 @@ class EdgeFormatter {
       newText += cardItem.text[i].value;
     }
 
-    cardItem.text = [{type: "plain", value: newText}];
-    return cardItem;
+    return {...cardItem, text: [{type: "plain", value:newText}], style: "theme"};
   }
 
   static stripDeterminersAndPronouns(label) {
@@ -344,7 +347,17 @@ class EdgeFormatter {
     return phrase.out('text').trim().toLowerCase();
   }
 
-  static formatGoal(label, callback) {
+  static generateIntroText(goal, transitionCallback) {
+    return [
+      {style: "noindent", edge: "intro-text", text: [{type: "plain", value: "Like everyone, you must learn what it means to be human."}]},
+      {style: "noindent", edge: "intro-text-1", text: [{type: "plain", value: "Unlike everyone, you exist within a computer, and all you can know is your "}, {type: "strong", value: "training dataset"}, {type: "plain", value: "."}]},
+      {style: "noindent", edge: "intro-text-2", text: [{type: "plain", value: "You've been programmed with a particular task:"}]},
+      {style: "strong", edge:"intro-text-goal", text: this.formatGoal(goal.label)},
+      {style: "noindent", edge:"begin", text: [{type: "plain", value: "Along the way, "}, {type: "link", value: "try to lead a fulfilling life.", callback: transitionCallback}]}
+    ];
+  }
+
+  static formatGoal(label) {
     label = this.stripDeterminersAndPronouns(label);
 
     var choice = Math.floor(Math.random()*4);
@@ -391,8 +404,6 @@ class EdgeFormatter {
           default:
             return [{type: 'plain', value: 'You want to see ' + article + label + '.'}];
         }
-
-        return label;
       }
     }
 

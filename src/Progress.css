@@ -1,0 +1,30 @@
+.progress {
+  background-color: rgba(255,255,255,0.5);
+  max-height: 20px;
+  position: absolute;
+  overflow: hidden;
+  font-size: 18px;
+  font-family: "Courier New";
+  color: #efeeee;
+  text-overflow: clip;
+  width: 100%;
+  transition: 1s;
+  z-index: 10;
+}
+
+.final {
+  position: absolute;
+  background-color: rgba(255,255,255,0.5);
+  width: 100%;
+  color: #efeeee;
+  font-size: 18px;
+  font-family: "Courier New";
+  height: auto;
+  max-height: 100%;
+}
+
+.final ul {
+  list-style: none;
+  margin-top: 0px;
+  padding-left: 0em;
+}

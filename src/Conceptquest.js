@@ -1,6 +1,6 @@
 // TODO:
 //  * XXXXXXXX filtering so that nodes without many distinct children won't appear
-//  *       OR: automatic history stack popping to achieve this
+//  * XXXXXXXX      OR: automatic history stack popping to achieve this
 //  * XXXXXXXX detect when we have popped to parent multiple times in a row and pop to parents parent
 //  * -------- opportunities to change identity, better tests of identity
 //  * XXXXXXXX changing color backgrounds
@@ -11,12 +11,13 @@
 //  * XXXXXXXX add destination node/victory condition
 //  * XXXXXXXX Add "narrativeHistory"
 //  * XXXXXXXX Create end-game screen
-//  * Make victory screen a separate component
-//  * Animate end game screen
+//  * XXXXXXXX Make victory screen a separate component
+//  * XXXXXXXX Animate end game screen
 //  * Fade colors as the game progresses
-//  * Add stored "achieved victory" state
+//  * XXXXXXXX Add stored "achieved victory" state
+//  * Make a response tot he 
 //  * Use victory state in final screen
-//  * Create score calculator
+//  * XXXXXXXX Create score calculator
 //  * Make number of turns variable
 
 import React, { Component } from 'react';
@@ -25,6 +26,8 @@ import './Conceptquest.css';
 import Card from './Card.js';
 import EdgeFormatter from './EdgeFormatter.js';
 import {commonTerms} from './commonTerms.js';
+import Progress from './Progress.js';
+import {numTurns, firstTheme} from './consts.js';
 
 class Conceptquest extends Component {
 
@@ -35,78 +38,99 @@ class Conceptquest extends Component {
       console.log(goal);
 
       this.state = { 
-        choices: [],
+        // identity is currently unused
+        gameState: 'intro',
         identity: {
           '@id': '/c/en/person',
           'label': 'a person' },
+        // settings this to true fades out the current card
         fadingOut: false,
-        intro: true,
-        introText: [
-          {type: "noindent", edge: "intro-text", text: [{type: "plain", value: "Like everyone, you must learn what it means to be human."}]},
-          {type: "noindent", edge: "intro-text-1", text: [{type: "plain", value: "Unlike everyone, you exist within a computer, and all you can know is your "}, {type: "strong", value: "training dataset"}, {type: "plain", value: "."}]},
-          {type: "noindent", edge: "intro-text-2", text: [{type: "plain", value: "You've been programmed with a particular task:"}]},
-          {type: "strong", edge:"intro-text-goal", text: EdgeFormatter.formatGoal(goal.label, this.beginGame.bind(this))},
-          {type: "noindent", edge:"begin", text: [{type: "plain", value: "Along the way, "}, {type: "link", value: "try to lead a fulfilling life.", callback: this.beginGame.bind(this)}]}
-        ],
-        goal: goal,
-        turns: 0,
-        endGame: false,
+        goal,
         score: 0,
-        victory: false
+        victory: false,
+        history: [],
+        backupPointer: -1,
+        introText: EdgeFormatter.generateIntroText(goal, this.beginGame)
       };
-
-      // state attributes that don't need to trigger a re-render
-      this.history = [];
-      this.narrativeHistory = [];
-      this.deadends = 0;
   }
 
-  fetchNextCard(node, lastEdge, firstTry) {
-    var randomColor = "#000000".replace(/00/g,() => (((~~(Math.random()*3)).toString(16)) + ((~~(Math.random()*16)).toString(16))));
-    document.body.style.backgroundColor = randomColor;
+  resetGame = () => {
+    let goal = commonTerms[Math.floor(Math.random() * commonTerms.length)];
+    console.log(goal);
 
+    this.setState({
+      gameState: 'intro',
+      goal,
+      introText: EdgeFormatter.generateIntroText(goal, this.beginGame),
+      fadingOut: false,
+      score: 0,
+      victory: false,
+      history: [],
+      backupPointer: -1
+    });
+  }
 
+  getCard = (lastEdge) => {
+    this.fetchEdges(lastEdge.key['@id'], (json) => this.applyCard(json, lastEdge));
+  }
+
+  fetchEdges = (node, action) => {
     fetch('http://api.conceptnet.io/' + node + '?limit=2000&offset=0') 
       .then(result => result.json())
-      .then((resultJson) => {
-        let score = Math.sqrt(1000.0 / resultJson.edges.length);
-        this.setState({score: this.state.score + score});
-
-        let allEdges = _.shuffle(resultJson.edges);
-
-        lastEdge.type = "theme";
-        let edges = [lastEdge];
-        while ((edges.length < 4) && (allEdges.length > 0)) {
-          let e = allEdges.pop();
-
-          if (this.filterResponse(e, lastEdge.edge)) {
-            edges.push(EdgeFormatter.formatEdge(e, edges.length, node, this.transition.bind(this), this.state.identity));
-          }
-        }
-
-        if (edges.length > 2) {
-          this.history.push({edge: lastEdge.edge, node: node});
-          if (firstTry) {
-            this.deadends = 0;
-          }
-
-         this.setState({items: edges});
-
-        } else {
-          this.deadends += 1;
-
-          let parent = this.history.pop();
-          if (this.deadends >= 2 && this.history.length >= 1) {
-            parent = this.history.pop();
-          }
-
-          this.fetchNextCard(parent.node, lastEdge, false);
-        }
-
-      });
+      .then(json => action(json));
   }
 
-  filterResponse(edge, previousEdgeId) {
+  applyCard = (json, lastEdge) => {
+    const edges = this.formattedValidEdges(json, lastEdge);
+
+    if (edges.length > 2) {
+      // calculate the score
+      const score = Math.sqrt(1000.0 / json.edges.length) + this.state.score;
+
+      // set the new backup pointer to be the previous edge
+      let newPointer = this.state.history.length;
+
+      // unless we have already visited this edge, in which case the backup pointer does not change!
+      if (this.state.history.map(h => h.key['@id']).includes(lastEdge.key['@id'])) {
+        newPointer = this.state.backupPointer;
+      }
+
+      this.setState({
+        items: edges,
+        history: [...this.state.history, lastEdge],
+        backupPointer: newPointer,
+        score
+      });
+
+    } else {
+      // this node didn't have enough edges, so we need to back up
+      this.getCard({...lastEdge, key: this.state.history[this.state.backupPointer].key});
+
+      // decrement the backup pointer so that if we have to do this again, we'll go back one farther
+      this.setState({
+        backupPointer: this.state.backupPointer === 0 ? 0 : this.state.backupPointer - 1
+      })
+    }
+  }
+
+  formattedValidEdges = (apiJson, lastEdge) => {
+    let allEdges = _.shuffle(apiJson.edges);
+
+    let edges = [lastEdge];
+
+    while ((edges.length < 4) && (allEdges.length > 0)) {
+      let e = allEdges.pop();
+
+      if (this.filterResponse(e, lastEdge.edge)) {
+        edges.push(EdgeFormatter.formatEdge(e, edges.length, lastEdge.key['@id'], this.transition, this.state.identity));
+      }
+    }
+
+    console.log(edges);
+    return edges;
+  }
+
+  filterResponse = (edge, previousEdgeId) => {
     let excluded_relations = ['/r/Synonym', '/r/ExternalURL', '/r/RelatedTo', '/r/HasContext',
                       '/r/FormOf', '/r/DerivedFrom', '/r/EtymologicallyRelatedTo', 
                       '/r/IsA', '/r/SimilarTo', '/r/Antonym', '/r/Synonym',
@@ -120,110 +144,46 @@ class Conceptquest extends Component {
     return false;
   }
 
-  beginGame() {
+  beginGame = () => {
     this.setState({
       fadingOut: true
     });
 
     window.setTimeout(() => {
-      this.setState({fadingOut: false, intro: false});
+      this.setState({fadingOut: false, gameState: 'playing'});
     }, 2000);
 
-    // magic number "4" refers to the first theme (line 4 of the intro card)
-    this.fetchNextCard('/c/en/person', EdgeFormatter.makePlain(this.state.introText[4]), true);
+
+    this.getCard({...EdgeFormatter.makePlain(this.state.introText[firstTheme]), key: {'@id': '/c/en/person'}} );
   }
 
-  transition(to, index) {
-    // console.log(this.state.items[index]);
-    // console.log(EdgeFormatter.makePlain(this.state.items[index]));
-    this.narrativeHistory.push(EdgeFormatter.makePlain(this.state.items[index]).text[0].value);
-
+  transition = (to, index) => {
     if (to['@id'] === this.state.goal['@id']) {
       // the player has won
       this.setState({
         victory: true,
         score: this.state.score + 10000
       });
-      
+
       console.log('victory achieved');
     }
       
+    this.getCard(EdgeFormatter.makePlain(this.state.items[index]));
 
-    if (this.state.turns === 21) {
-      // this.history.push({edge: this.state.items[index].edge, node: to['@id']});
-      this.setState({endGame: true});
-    } else {
-      this.setState({turns: this.state.turns + 1});
-      this.fetchNextCard(to['@id'], EdgeFormatter.makePlain(this.state.items[index]), true);
+    if (this.state.history.length === numTurns - 1) {
+      this.setState({gameState: 'endgame', fadingOut: true});
     }
   }
 
-  componentWillMount() {
-    // get the current position
+  render = () => {
+    console.log('Render history', this.state.history, 'backup pointer', this.state.backupPointer);
 
-    let edge = window.location.hash.slice(1, window.location.hash.length);
-
-    if ((edge.length > 1) && (edge !== "begin")) {
-      let location = edge.slice(4, window.location.hash.length-2).split(',')[1];
-      this.setState({
-        intro: false,
-        fadingOut: false,
-        items: []
-      });
-
-      fetch('http://api.conceptnet.io/' + edge) 
-        .then(result => result.json())
-        .then((resultJson) => {
-          console.log(resultJson);
-          let previousEdge = EdgeFormatter.makePlain(EdgeFormatter.formatEdge(resultJson, 0, "", this.transition.bind(this), this.state.identity));
-          this.fetchNextCard(location, previousEdge, true);
-      });
-    }
-
-  }
-
-  render() {
-    if (this.state.endGame) { 
-      return (
-        <div id="main">
-          <div key="blade" className="progress final">
-            <ul>
-              <li>{"> training... 3 / 3 epochs completed"}</li>
-              <li>{">"}</li>
-              {this.narrativeHistory.map((h) => {
-                return <li key={h}>{">  * " + h}</li>
-              })} 
-              <li>{">"}</li>
-              <li>{"> score: " + this.state.score.toFixed(2)}</li>
-              <li>{"> training loss: " + (1000.0/this.state.score).toFixed(4)}</li>
-              <li>{">"}</li>
-              <li>{"> play again?"}</li>
-            </ul>
-          </div>
-        </div>
-        );
-
-    } else {
-      var cardClass;
-
-      if (this.state.fadingOut) {
-        cardClass = "Card-container Card-fade-out";
-      } else {
-        cardClass = "Card-container";
-      }
-
-      return (
-        <div id="main">
-          <div key="blade" className="progress" style={{width: this.state.turns*4.7619047619 + "%"}}>
-          {"> training... " + (this.state.turns/7.0).toPrecision(2) + " / 3 epochs completed "}
-          </div>
-          <div className={cardClass}>
-            <Card key="intro-card" items={this.state.intro ? this.state.introText : this.state.items} />
-          </div>
-        </div>
-      );
-    }
-
+    return (
+      <div id="main">
+        <Progress history={this.state.history} final={this.state.gameState === 'endgame'} score={this.state.score} reset={this.resetGame} />
+        <Card items={this.state.gameState === "intro" ? this.state.introText : this.state.items} fading={this.state.fadingOut}/>
+      </div>
+    );
   }
 }
 

@@ -29,7 +29,7 @@ describe('<CardText />', () => {
 describe('EdgeFormatter', () => {
 	edgesToTest.map((test) => {
 		it('formats ' + test.edge, () => {
-			let edge = JSON.parse(fs.readFileSync('src/test/conceptnet/' + test.edge.replace(/\//g, "-")));
+			let edge = JSON.parse(fs.readFileSync('src/tests/conceptnet/' + test.edge.replace(/\//g, "-")));
 			let formatted = EdgeFormatter.makePlain(EdgeFormatter.formatEdge(edge, 0, '', () => {}, {label: 'a person'}, false));
 			expect(formatted.text[0].value).toBe(test.expected);
 		});
