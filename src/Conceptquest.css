@@ -19,13 +19,13 @@ body {
   height: 100%;
 }
 
+/* want buttons to appear like links */
 button {
   color: white;
   background:none;
   border:none; 
   padding:0!important;
   font: inherit;
-  /*border is optional*/
   cursor: pointer;
   text-decoration: underline;
 }

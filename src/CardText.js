@@ -40,7 +40,7 @@ class CardText extends Component {
             </span>
           );
         default:
-          return <span />;
+          return <span key={i} />;
       }
     });
 

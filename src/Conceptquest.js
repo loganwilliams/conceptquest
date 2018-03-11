@@ -1,7 +1,9 @@
 // TODO:
-//  * XXXXXXXX filtering so that nodes without many distinct children won't appear
+//  * XXXXXXXX filtering so that nodes without many distinct children won't
+//    appear
 //  * XXXXXXXX      OR: automatic history stack popping to achieve this
-//  * XXXXXXXX detect when we have popped to parent multiple times in a row and pop to parents parent
+//  * XXXXXXXX detect when we have popped to parent multiple times in a row and
+//    pop to parents parent
 //  * -------- opportunities to change identity, better tests of identity
 //  * XXXXXXXX changing color backgrounds
 //  * background music
@@ -24,22 +26,21 @@ import React, { Component } from "react";
 import _ from "underscore";
 import "./Conceptquest.css";
 import Card from "./Card.js";
-import EdgeFormatter from "./EdgeFormatter.js";
-import { commonTerms } from "./commonTerms.js";
+import * as EdgeFormatter from "./include/EdgeFormatter.js";
+import { commonTerms } from "./include/commonTerms.js";
 import Progress from "./Progress.js";
-import * as consts from "./consts.js";
+import * as consts from "./include/consts.js";
 
 class Conceptquest extends Component {
   constructor() {
     super();
 
-    let goal = commonTerms[Math.floor(Math.random() * commonTerms.length)];
-    console.log(goal);
+    const goal = commonTerms[Math.floor(Math.random() * commonTerms.length)];
 
     this.state = {
       // gameState can be "intro", "playing", "warning", "victory", or "endgame"
       gameState: "intro",
-      // identity is currently unused
+      // identity is currently a constant
       identity: {
         "@id": "/c/en/person",
         label: "a person"
@@ -56,13 +57,15 @@ class Conceptquest extends Component {
       history: [],
       // what point will the game go back to if the user hits a dead end
       backupPointer: -1,
-      // the text used to introduce the game (stored here because it is generated with random variants)
+      // the text used to introduce the game (stored here because it is 
+      // generated with random variants)
       introText: EdgeFormatter.generateIntroText(goal, this.beginGame)
     };
   }
 
+  // Resets the game to essentially the state constructed in this.constructor()
   resetGame = () => {
-    let goal = commonTerms[Math.floor(Math.random() * commonTerms.length)];
+    const goal = commonTerms[Math.floor(Math.random() * commonTerms.length)];
     console.log(goal);
 
     this.setState({
@@ -77,18 +80,34 @@ class Conceptquest extends Component {
     });
   };
 
+  // fetch, filter, and apply the next set of choices ("card") that the
+  // ConceptNet API gives us using a particular edge as the starting point.
   getCard = lastEdge => {
     this.fetchEdges(lastEdge.key["@id"], json =>
       this.applyCard(json, lastEdge)
     );
   };
 
+  // fetch the card from the ConceptNet API and call action(json) on the result
   fetchEdges = (node, action) => {
     fetch("http://api.conceptnet.io/" + node + "?limit=2000&offset=0")
       .then(result => result.json())
       .then(json => action(json));
   };
 
+  // takes an API response and:
+  //  FILTERS
+  //  * filters response to select suitable edges (formattedValidEdges())
+  //  VALIDATES
+  //  * determines if set of filtered edges ("card") is suitable
+  //  APPLIES
+  //  * updates player score
+  //  * updates current card display
+  //  * updates player history
+  //  UNLESS INVALID
+  //  * calls this.getCard() again on the parent edge (previous visited)
+  //    of lastEdge. if we have recently visited the parent edge, go to
+  //    the parent's parent edge (and so on).
   applyCard = (json, lastEdge) => {
     const edges = this.formattedValidEdges(json, lastEdge);
 
@@ -99,7 +118,8 @@ class Conceptquest extends Component {
       // set the new backup pointer to be the previous edge
       let newPointer = this.state.history.length;
 
-      // unless we have already visited this edge, in which case the backup pointer does not change!
+      // unless we have already visited this edge, in which case the backup
+      // pointer does not change!
       if (
         this.state.history
           .slice(
@@ -125,7 +145,8 @@ class Conceptquest extends Component {
         key: this.state.history[this.state.backupPointer].key
       });
 
-      // decrement the backup pointer so that if we have to do this again, we'll go back one farther
+      // decrement the backup pointer so that if we have to do this again,
+      // we'll go back one farther
       this.setState({
         backupPointer:
           this.state.backupPointer === 0 ? 0 : this.state.backupPointer - 1
@@ -142,12 +163,13 @@ class Conceptquest extends Component {
       let e = allEdges.pop();
 
       if (this.filterResponse(e, lastEdge.edge)) {
+        const index = edges.length;
+
         edges.push(
           EdgeFormatter.formatEdge(
             e,
-            edges.length,
             lastEdge.key["@id"],
-            this.transition,
+            (term) => this.transition(term, index),
             this.state.identity
           )
         );
@@ -195,7 +217,7 @@ class Conceptquest extends Component {
 
     window.setTimeout(() => {
       this.setState({ fadingOut: false, gameState: "playing" });
-    }, 2000);
+    }, consts.fadeDelay);
 
     this.getCard({
       ...EdgeFormatter.makePlain(this.state.introText[consts.firstTheme]),
@@ -204,7 +226,8 @@ class Conceptquest extends Component {
   };
 
   transition = (to, index) => {
-    // if we have achieved victory, we want a special card transition, and some bonus points
+    // if we have achieved victory, we want a special card transition, and some
+    // bonus points
     if (to["@id"] === this.state.goal["@id"]) {
       this.setState({
         victory: true,
@@ -218,7 +241,7 @@ class Conceptquest extends Component {
           gameState: "victory",
           fadingOut: false
         });
-      }, 2000);
+      }, consts.fadeDelay);
 
       console.log("victory achieved");
 
@@ -232,7 +255,7 @@ class Conceptquest extends Component {
           gameState: "warning",
           fadingOut: false
         });
-      }, 2000);
+      }, consts.fadeDelay);
 
       // otherwise, we have a completely normal transition
     } else {
@@ -246,18 +269,22 @@ class Conceptquest extends Component {
   };
 
   continueGame = () => {
+    // fade out interstitial card
     this.setState({
       fadingOut: true
     });
 
+    // after CSS transition is completed, fade in a normal game card.
     window.setTimeout(() => {
       this.setState({
         gameState: "playing",
         fadingOut: false
       });
-    }, 2000);
+    }, consts.fadeDelay);
   };
 
+  // generates a background color ambiance for the game, based on the player's
+  // current progress
   getBackgroundColor = () => {
     const progress = this.state.history.length / consts.numTurns;
 
@@ -275,16 +302,6 @@ class Conceptquest extends Component {
   };
 
   render = () => {
-    console.log(
-      "Render history",
-      this.state.history,
-      "backup pointer",
-      this.state.backupPointer
-    );
-
-    console.log(
-      EdgeFormatter.formatGoalPast(this.state.goal.label, this.state.victory)
-    );
     let items = this.state.items;
 
     switch (this.state.gameState) {
@@ -301,7 +318,7 @@ class Conceptquest extends Component {
           {
             style: "indent",
             edge: "victory-goal",
-            text: EdgeFormatter.formatGoalPast(this.state.goal.label, true)
+            text: EdgeFormatter.formatGoal(this.state.goal.label, "past", true)
           },
           {
             style: "indent",
@@ -356,8 +373,9 @@ class Conceptquest extends Component {
         <Progress
           history={this.state.history}
           final={this.state.gameState === "endgame"}
-          goalText={EdgeFormatter.formatGoalPast(
+          goalText={EdgeFormatter.formatGoal(
             this.state.goal.label,
+            "past",
             this.state.victory
           )}
           score={this.state.score}

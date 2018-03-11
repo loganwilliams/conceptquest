@@ -39,7 +39,7 @@ export var commonTerms = [
 	{ "@id": "/c/en/cutting_hair", label: "cutting hair" },
 	{ "@id": "/c/en/listen_to_music", label: "listen to music" },
 	{ "@id": "/c/en/sun", label: "sun" },
-	{ "@id": "/c/en/fencing", label: "Esgrima" },
+	{ "@id": "/c/en/fencing", label: "fencing" },
 	{ "@id": "/c/en/fire", label: "fire" },
 	{ "@id": "/c/en/table", label: "a table" },
 	{ "@id": "/c/en/look_better", label: "look better" },
