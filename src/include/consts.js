@@ -18,7 +18,8 @@ export const myWords = {
   save: "Verb",
   saving: "Verb",
   tell: "Verb",
-  telling: "Verb"
+  telling: "Verb",
+  climb: "Verb"
 };
 
 export const conjugations = {
