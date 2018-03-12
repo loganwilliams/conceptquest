@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import "./Progress.css";
 import * as consts from "./include/consts.js";
 
+// Renders a game progress overlay. It is an unobtrusive progress bar during
+// play, and a descriptive score overlay when the game is over.
 class Progress extends Component {
   render() {
     if (this.props.final) {
@@ -18,10 +20,9 @@ class Progress extends Component {
                 return <li key={i}>{">  * " + h.text[0].value}</li>;
               })}
             <li>{">"}</li>
-            <li>{"> score: " + this.props.score.toFixed(2)}</li>
             {/* reformat the score as "training loss" (for fun) */}
             <li>
-              {"> training loss: " + (400.0 / this.props.score).toFixed(4)}
+              {"> "}<span className="Progress-score">{"training loss: " + (400.0 / this.props.score).toFixed(4)}</span>
             </li>
             <li>{">"}</li>
             <li>

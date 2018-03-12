@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import CardText from "./CardText.js";
 import "./Card.css";
 
+// Renders a game card.
 class Card extends Component {
   render() {
     // add a class to trigger the CSS fade out animation if we need to

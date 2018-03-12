@@ -1,27 +1,3 @@
-// TODO:
-//  * XXXXXXXX filtering so that nodes without many distinct children won't
-//    appear
-//  * XXXXXXXX      OR: automatic history stack popping to achieve this
-//  * XXXXXXXX detect when we have popped to parent multiple times in a row and
-//    pop to parents parent
-//  * -------- opportunities to change identity, better tests of identity
-//  * XXXXXXXX changing color backgrounds
-//  * background music
-//  * -------- smooth transitions of clicked item -> theme
-//  * XXXXXXXX improve animation when game is starting
-//  * XXXXXXXX enable deep linking by detecting URL
-//  * XXXXXXXX add destination node/victory condition
-//  * XXXXXXXX Add "narrativeHistory"
-//  * XXXXXXXX Create end-game screen
-//  * XXXXXXXX Make victory screen a separate component
-//  * XXXXXXXX Animate end game screen
-//  * XXXXXXXX Fade colors as the game progresses
-//  * XXXXXXXX Add stored "achieved victory" state
-//  * XXXXXXXX Make a response to achieving victory.
-//  * XXXXXXXX Use victory state in final screen
-//  * XXXXXXXX Create score calculator
-//  * XXXXXXXX Make number of turns variable
-
 import React, { Component } from "react";
 import _ from "underscore";
 import "./Conceptquest.css";
@@ -31,6 +7,8 @@ import { commonTerms } from "./include/commonTerms.js";
 import Progress from "./Progress.js";
 import * as consts from "./include/consts.js";
 
+// The main component that keeps track of game state and renders every 
+// other component.
 class Conceptquest extends Component {
   constructor() {
     super();
@@ -63,7 +41,7 @@ class Conceptquest extends Component {
     };
   }
 
-  // Resets the game to essentially the state constructed in this.constructor()
+  // Resets the game. Essentially to the state constructed in this.constructor()
   resetGame = () => {
     const goal = commonTerms[Math.floor(Math.random() * commonTerms.length)];
     console.log(goal);
@@ -80,7 +58,7 @@ class Conceptquest extends Component {
     });
   };
 
-  // fetch, filter, and apply the next set of choices ("card") that the
+  // Fetch, filter, and apply the next set of choices ("card") that the
   // ConceptNet API gives us using a particular edge as the starting point.
   getCard = lastEdge => {
     this.fetchEdges(lastEdge.key["@id"], json =>
@@ -88,7 +66,7 @@ class Conceptquest extends Component {
     );
   };
 
-  // fetch the card from the ConceptNet API and call action(json) on the result
+  // Fetch the card from the ConceptNet API and call action(json) on the result.
   fetchEdges = (node, action) => {
     fetch("http://api.conceptnet.io/" + node + "?limit=2000&offset=0")
       .then(result => result.json())
@@ -97,17 +75,17 @@ class Conceptquest extends Component {
 
   // takes an API response and:
   //  FILTERS
-  //  * filters response to select suitable edges (formattedValidEdges())
+  //   * filters response to select suitable edges (formattedValidEdges())
   //  VALIDATES
-  //  * determines if set of filtered edges ("card") is suitable
+  //   * determines if set of filtered edges ("card") is suitable
   //  APPLIES
-  //  * updates player score
-  //  * updates current card display
-  //  * updates player history
+  //   * updates player score
+  //   * updates current card display
+  //   * updates player history
   //  UNLESS INVALID
-  //  * calls this.getCard() again on the parent edge (previous visited)
-  //    of lastEdge. if we have recently visited the parent edge, go to
-  //    the parent's parent edge (and so on).
+  //   * calls this.getCard() again on the parent edge (previous visited)
+  //     of lastEdge. if we have recently visited the parent edge, go to
+  //     the parent's parent edge (and so on).
   applyCard = (json, lastEdge) => {
     const edges = this.formattedValidEdges(json, lastEdge);
 
@@ -154,6 +132,8 @@ class Conceptquest extends Component {
     }
   };
 
+  // Generates a list of valid edges (not the same as the last edge, not
+  // with an excluded relation) from a ConceptNet API response.
   formattedValidEdges = (apiJson, lastEdge) => {
     let allEdges = _.shuffle(apiJson.edges);
 
@@ -179,6 +159,7 @@ class Conceptquest extends Component {
     return edges;
   };
 
+  // Checks to see if "edge" is an edge that we want to use.
   filterResponse = (edge, previousEdgeId) => {
     const excluded_relations = [
       "/r/Synonym",
@@ -210,6 +191,7 @@ class Conceptquest extends Component {
     return false;
   };
 
+  // Starts the game by running the first transition.
   beginGame = () => {
     this.setState({
       fadingOut: true
@@ -225,6 +207,7 @@ class Conceptquest extends Component {
     });
   };
 
+  // Transition to a node called "to," from line "index" of the previous card.
   transition = (to, index) => {
     // if we have achieved victory, we want a special card transition, and some
     // bonus points
@@ -268,6 +251,7 @@ class Conceptquest extends Component {
     }
   };
 
+  // Return to playing the game after an insterstitial card was presented.
   continueGame = () => {
     // fade out interstitial card
     this.setState({
@@ -283,8 +267,8 @@ class Conceptquest extends Component {
     }, consts.fadeDelay);
   };
 
-  // generates a background color ambiance for the game, based on the player's
-  // current progress
+  // Generates a background color ambiance for the game, based on the player's
+  // current progress.
   getBackgroundColor = () => {
     const progress = this.state.history.length / consts.numTurns;
 
@@ -304,6 +288,7 @@ class Conceptquest extends Component {
   render = () => {
     let items = this.state.items;
 
+    // Depending on game state, we may displasy special cards.
     switch (this.state.gameState) {
       case "intro":
         items = this.state.introText;
@@ -338,14 +323,7 @@ class Conceptquest extends Component {
           {
             style: "theme",
             edge: "warning-theme",
-            text: [{ type: "plain", value: "Warning." }]
-          },
-          {
-            style: "indent",
-            edge: "warning-warning",
-            text: [
-              { type: "plain", value: "Your training session is half over." }
-            ]
+            text: [{ type: "plain", value: "Warning: your training session is half over." }]
           },
           {
             style: "indent",

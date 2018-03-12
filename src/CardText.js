@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import "./CardText.css";
 
+// Renders a formatted line of text in a card.
 class CardText extends Component {
   render() {
     let lineClass = "CardText-line";
