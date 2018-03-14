@@ -5,7 +5,7 @@
 * But you don't know what to do.
 * You need to practice.
 
-Conceptquest is an interactive hypertext game based on the strange and wonderful world of [the ConceptNet](http://conceptnet.io).
+Conceptquest is an interactive hypertext game based on the strange and surprising world of [the ConceptNet](http://conceptnet.io).
 
 **Warning:** the ConceptNet dataset contains unfiltered, crowdsourced language. Some data might be offensive or disturbing, so use discretion. On the other hand, we're training natural language models with this stuff, so ¯\\\_(ツ)\_/¯.
 
