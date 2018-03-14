@@ -38,3 +38,12 @@ button:hover {
 button:focus {
   outline: none;
 }
+
+a {
+  color: white;
+}
+
+a:hover  {
+  color: #444;
+  background-color: #fff;
+}

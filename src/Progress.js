@@ -10,7 +10,7 @@ class Progress extends Component {
       return (
         <div className="Progress Progress-final">
           <ul>
-            <li>{"> training... 3 / 3 epochs completed"}</li>
+            <li>{"> Training... 3 / 3 epochs completed"}</li>
             <li>{">"}</li>
             <li>{"> " + this.props.goalText[0].value}</li>
             <li>{">"}</li>
@@ -22,12 +22,15 @@ class Progress extends Component {
             <li>{">"}</li>
             {/* reformat the score as "training loss" (for fun) */}
             <li>
-              {"> "}<span className="Progress-score">{"training loss: " + (400.0 / this.props.score).toFixed(4)}</span>
+              {"> "}<span className="Progress-score">{"Training loss: " + (400.0 / this.props.score).toFixed(4)}</span>
             </li>
+            <li>{"> "}</li>
+            <li>{"> "}Background sound effects by <a href="https://kowalskiroom.bandcamp.com/album/aberrations">Kowalski Room</a> under a Creative Commons license.</li>
+            <li>{"> "}Concepts and relations from the <a href="http://conceptnet.io/">ConceptNet</a> project under a Creative Commons license.</li>
             <li>{">"}</li>
             <li>
               {"> "}
-              <button onClick={this.props.reset}>play again?</button>
+              <button onClick={this.props.reset}>Play again?</button>
             </li>
           </ul>
         </div>
@@ -42,7 +45,7 @@ class Progress extends Component {
             width: this.props.history.length * (100 / consts.numTurns) + "%"
           }}
         >
-          {"> training... " +
+          {"> Training... " +
             (3 * this.props.history.length / consts.numTurns).toPrecision(2) +
             " / 3 epochs completed "}
         </div>

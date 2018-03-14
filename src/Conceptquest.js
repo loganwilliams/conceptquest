@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import _ from "underscore";
 import "./Conceptquest.css";
 import Card from "./Card.js";
+import BackgroundMusic from "./BackgroundMusic.js";
 import * as EdgeFormatter from "./include/EdgeFormatter.js";
 import { commonTerms } from "./include/commonTerms.js";
 import Progress from "./Progress.js";
@@ -348,6 +349,7 @@ class Conceptquest extends Component {
           backgroundColor: this.getBackgroundColor()
         }}
       >
+        <BackgroundMusic src="/audio/background_loop.mp3" />
         <Progress
           history={this.state.history}
           final={this.state.gameState === "endgame"}
