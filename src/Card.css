@@ -4,9 +4,9 @@
   justify-content: center;
   margin: 0px;
   height: 100%;
-  max-width: 700px;
   margin-left: auto;
   margin-right: auto;
+  width: 80%;
 }
 
 .Card {
@@ -25,6 +25,12 @@
   z-index: 2;
   animation-duration: 5s;
   animation-name: slide-fade;
+}
+
+@media (min-width: 858px) {
+    .Card-container {
+      max-width: 700px;
+    }
 }
 
 .Card-fade-in {

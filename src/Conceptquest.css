@@ -5,12 +5,12 @@ html {
 body {
   margin: 0px;
   font-family: "EB Garamond", "Georgia", "Cambria", sans-serif;
-  font-size: 2em;
+  font-size: 1.25em;
   /*background-color: #222222;*/
   height: 100vh;
   transition: 10s;
   transition-property: background-color;
-  background-image: url(/images/250-90-5-monochrome.png);
+  background-image: url(https://subject.space/projects-static/conceptquest/images/250-90-5-monochrome.png);
   background-repeat: repeat;
 }
 
@@ -46,4 +46,10 @@ a {
 a:hover  {
   color: #444;
   background-color: #fff;
+}
+
+@media (min-width: 858px) {
+    body {
+        font-size: 2em;
+    }
 }

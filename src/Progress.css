@@ -17,7 +17,7 @@
   background-color: rgba(255, 255, 255, 0.5);
   width: 100%;
   color: #efeeee;
-  font-size: 18px;
+  font-size: 11px;
   font-family: "Courier New";
   height: auto;
   max-height: 100%;
@@ -31,4 +31,10 @@
 
 .Progress-score {
   font-weight: bold;
+}
+
+@media (min-width: 858px) {
+  .Progress-final {
+    font-size: 18px;
+  }
 }
